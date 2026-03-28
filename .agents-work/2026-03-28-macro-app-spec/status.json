@@ -1,0 +1,25 @@
+{
+  "session": "2026-03-28-macro-app-spec",
+  "current_state": "PLAN",
+  "mode": "full",
+  "assumptions": [
+    "Formula default target kcal: Mifflin-St Jeor + activity factor + weekly-goal delta",
+    "Sync Garmin MVP: app-open + manual, senza scheduler periodico",
+    "Override nutrienti mantiene ultimo valore, senza storico",
+    "Bootstrap T-001 usa script gradlew che scarica Gradle 8.9 e preferisce JDK 17/21 se disponibili",
+    "Lint/test richiedono SDK Android configurato via ANDROID_HOME o local.properties"
+  ],
+  "known_issues": [],
+  "user_decisions": [
+    "Profilo obiettivo selezionabile (perdita/mantenimento/aumento)",
+    "Storico oltre 90 giorni confermato hard",
+    "Dashboard macro in grammi e percentuali",
+    "Nutrienti mancanti con visualizzazione discreta",
+    "Quick add '+' nice-to-have",
+    "Errore sync Garmin con notifica temporanea",
+    "Export dati e cancellazione completa dati richiesti in MVP",
+    "Fitbit e Google Fit fuori scope MVP",
+    "KPI business non richiesti ora; validazione iniziale manuale utente"
+  ],
+  "last_update": "2026-03-28T13:20:00Z"
+}

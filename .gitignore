@@ -1,0 +1,14 @@
+# Gradle local artifacts
+.gradle/
+.gradle-wrapper/
+
+# Build outputs
+build/
+app/build/
+
+# IDE
+.idea/
+*.iml
+
+# OS
+.DS_Store

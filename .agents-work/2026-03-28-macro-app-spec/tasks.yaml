@@ -1,0 +1,411 @@
+project:
+  name: "myFitnessMeals Android MVP"
+  definition_of_done:
+    - "CI green"
+    - "AC met"
+    - "README updated"
+    - "Security checks passed for token storage"
+    - "Performance thresholds p95 documented and verified"
+
+tasks:
+  - id: T-001
+    status: implemented
+    type: chore
+    title: "Bootstrap Android project"
+    depends_on: []
+    goal: "Creare lo scheletro Android Kotlin con moduli base, tooling, CI minima e convenzioni di qualità."
+    non_goals:
+      - "Implementare feature di business"
+      - "Integrare servizi esterni"
+    context_files:
+      - ".agents-work/2026-03-28-macro-app-spec/spec.md"
+      - ".agents-work/2026-03-28-macro-app-spec/architecture.md"
+      - ".agents-work/2026-03-28-macro-app-spec/acceptance.json"
+    files_expected:
+      - "settings.gradle.kts"
+      - "build.gradle.kts"
+      - "app/build.gradle.kts"
+      - "app/src/main/AndroidManifest.xml"
+      - "gradle.properties"
+      - "README.md"
+      - ".github/workflows/android-ci.yml"
+    acceptance_checks:
+      - "cmd: ./gradlew tasks"
+      - "cmd: ./gradlew lint"
+      - "cmd: ./gradlew test"
+      - "manual: build debug installabile su emulatore"
+    risk_flags:
+      - "perf"
+    done_when:
+      - "Toolchain Android configurata e build locale eseguibile"
+      - "CI minima attiva con lint+test"
+      - "Standard codice definiti"
+
+  - id: T-002
+    status: not-started
+    type: feat
+    title: "Implement local data foundation"
+    depends_on:
+      - "T-001"
+    goal: "Implementare schema Room, DAO, repository base e transazioni per diario, alimenti, override, fitness e aggregati."
+    non_goals:
+      - "UI completa"
+      - "Chiamate rete reali"
+    context_files:
+      - ".agents-work/2026-03-28-macro-app-spec/spec.md"
+      - ".agents-work/2026-03-28-macro-app-spec/architecture.md"
+      - ".agents-work/2026-03-28-macro-app-spec/acceptance.json"
+    files_expected:
+      - "app/src/main/java/**/data/local/*.kt"
+      - "app/src/main/java/**/data/repository/*.kt"
+      - "app/src/main/java/**/domain/model/*.kt"
+      - "app/src/test/java/**/data/local/*.kt"
+    acceptance_checks:
+      - "cmd: ./gradlew test"
+      - "manual: CRUD meal_entry e recalcolo daily_summary verificati"
+    risk_flags:
+      - "perf"
+      - "breaking-change"
+    done_when:
+      - "Tabelle e relazioni principali create secondo architecture"
+      - "Transazioni atomiche su save/delete voce pasto"
+      - "AC-017 e RNF-013 tracciabili da test"
+
+  - id: T-003
+    status: not-started
+    type: feat
+    title: "Build Open Food Facts adapter"
+    depends_on:
+      - "T-001"
+      - "T-002"
+    goal: "Realizzare integrazione OFF con mapping canonico e normalizzazione nutrienti su 100g/100ml."
+    non_goals:
+      - "Integrazione Garmin"
+      - "UI definitiva ricerca"
+    context_files:
+      - ".agents-work/2026-03-28-macro-app-spec/spec.md"
+      - ".agents-work/2026-03-28-macro-app-spec/architecture.md"
+      - ".agents-work/2026-03-28-macro-app-spec/acceptance.json"
+    files_expected:
+      - "app/src/main/java/**/integration/off/*.kt"
+      - "app/src/main/java/**/data/mapper/*Off*.kt"
+      - "app/src/test/java/**/integration/off/*.kt"
+    acceptance_checks:
+      - "cmd: ./gradlew test"
+      - "manual: ricerca testo e barcode con fallback OFF funzionante"
+    risk_flags:
+      - "perf"
+    done_when:
+      - "Error taxonomy OFF implementata"
+      - "Mapping nutrienti e unita validato"
+      - "AC-003, AC-004, AC-022 coperti da test"
+
+  - id: T-004
+    status: not-started
+    type: feat
+    title: "Implement meal logging flows"
+    depends_on:
+      - "T-002"
+      - "T-003"
+    goal: "Implementare flussi ricerca alimento (testo/barcode), dettaglio porzione/unita e salvataggio voci pasto."
+    non_goals:
+      - "Dashboard completa"
+      - "Integrazione fitness"
+    context_files:
+      - ".agents-work/2026-03-28-macro-app-spec/spec.md"
+      - ".agents-work/2026-03-28-macro-app-spec/architecture.md"
+      - ".agents-work/2026-03-28-macro-app-spec/acceptance.json"
+    files_expected:
+      - "app/src/main/java/**/ui/meal/*.kt"
+      - "app/src/main/java/**/ui/search/*.kt"
+      - "app/src/main/java/**/ui/barcode/*.kt"
+      - "app/src/main/java/**/domain/usecase/*Meal*.kt"
+      - "app/src/androidTest/java/**/meal/*.kt"
+    acceptance_checks:
+      - "cmd: ./gradlew test"
+      - "cmd: ./gradlew connectedAndroidTest"
+      - "manual: aggiunta alimento in 4 tipi pasto e cancellazione voce"
+    risk_flags:
+      - "perf"
+    done_when:
+      - "AC-002, AC-005, AC-006, AC-017 soddisfatti"
+      - "Validazione quantita > 0 in UI e domain"
+      - "Aggiornamento realtime calorie/macro verificato"
+
+  - id: T-005
+    status: not-started
+    type: feat
+    title: "Add nutrition override workflow"
+    depends_on:
+      - "T-002"
+      - "T-004"
+    goal: "Implementare override nutrienti, provenance e policy deterministica Override > Cache > OFF."
+    non_goals:
+      - "Sync provider fitness"
+      - "Reportistica avanzata"
+    context_files:
+      - ".agents-work/2026-03-28-macro-app-spec/spec.md"
+      - ".agents-work/2026-03-28-macro-app-spec/architecture.md"
+      - ".agents-work/2026-03-28-macro-app-spec/acceptance.json"
+    files_expected:
+      - "app/src/main/java/**/domain/service/NutrientResolverService.kt"
+      - "app/src/main/java/**/ui/fooddetail/*.kt"
+      - "app/src/main/java/**/data/repository/OverrideRepository.kt"
+      - "app/src/test/java/**/domain/*Resolver*.kt"
+    acceptance_checks:
+      - "cmd: ./gradlew test"
+      - "manual: modifica nutriente e riuso su ricerca successiva"
+    risk_flags:
+      - "breaking-change"
+    done_when:
+      - "AC-007 e RF-029 coperti"
+      - "RB-001 implementata e testata"
+      - "Audit base timestamp override disponibile"
+
+  - id: T-006
+    status: not-started
+    type: feat
+    title: "Implement onboarding and settings"
+    depends_on:
+      - "T-002"
+    goal: "Realizzare onboarding con scelta profilo obiettivo e schermata impostazioni con target kcal/macro e validazioni."
+    non_goals:
+      - "Algoritmo avanzato coaching"
+      - "Notifiche push"
+    context_files:
+      - ".agents-work/2026-03-28-macro-app-spec/spec.md"
+      - ".agents-work/2026-03-28-macro-app-spec/architecture.md"
+      - ".agents-work/2026-03-28-macro-app-spec/acceptance.json"
+    files_expected:
+      - "app/src/main/java/**/ui/onboarding/*.kt"
+      - "app/src/main/java/**/ui/settings/*.kt"
+      - "app/src/main/java/**/domain/service/GoalComputationService.kt"
+      - "app/src/test/java/**/domain/*Goal*.kt"
+    acceptance_checks:
+      - "cmd: ./gradlew test"
+      - "manual: onboarding completo e salvataggio macro 100%"
+    risk_flags:
+      - "perf"
+    done_when:
+      - "AC-001 e AC-008 soddisfatti"
+      - "RB-004 e RB-008 testate"
+      - "Profilo utente persistente su riavvio app"
+
+  - id: T-007
+    status: not-started
+    type: feat
+    title: "Build dashboard and history"
+    depends_on:
+      - "T-002"
+      - "T-004"
+      - "T-006"
+    goal: "Implementare dashboard con card calorie/macro e widget principali, inclusa navigazione storico >=90 giorni."
+    non_goals:
+      - "Personalizzazione layout avanzata"
+      - "Nuovi widget non MVP"
+    context_files:
+      - ".agents-work/2026-03-28-macro-app-spec/spec.md"
+      - ".agents-work/2026-03-28-macro-app-spec/architecture.md"
+      - ".agents-work/2026-03-28-macro-app-spec/acceptance.json"
+    files_expected:
+      - "app/src/main/java/**/ui/dashboard/*.kt"
+      - "app/src/main/java/**/ui/history/*.kt"
+      - "app/src/main/java/**/domain/usecase/ObserveDashboardUseCase.kt"
+      - "app/src/androidTest/java/**/dashboard/*.kt"
+    acceptance_checks:
+      - "cmd: ./gradlew connectedAndroidTest"
+      - "manual: visualizzazione card e widget con dati giornata"
+    risk_flags:
+      - "perf"
+    done_when:
+      - "AC-009, AC-010, AC-011 e AC-015 soddisfatti"
+      - "Formula calorie rimanenti coerente con RB-003"
+      - "Rendering dashboard fluido su device di riferimento"
+
+  - id: T-008
+    status: not-started
+    type: feat
+    title: "Integrate Garmin auth and sync"
+    depends_on:
+      - "T-001"
+      - "T-002"
+      - "T-006"
+      - "T-007"
+    goal: "Implementare connessione/disconnessione Garmin OAuth2, secure token storage e sync app-open/on-demand."
+    non_goals:
+      - "Fitbit o Google Fit"
+      - "Sync periodica schedulata"
+    context_files:
+      - ".agents-work/2026-03-28-macro-app-spec/spec.md"
+      - ".agents-work/2026-03-28-macro-app-spec/architecture.md"
+      - ".agents-work/2026-03-28-macro-app-spec/acceptance.json"
+    files_expected:
+      - "app/src/main/java/**/integration/garmin/*.kt"
+      - "app/src/main/java/**/worker/GarminSyncWorker.kt"
+      - "app/src/main/java/**/security/*.kt"
+      - "app/src/test/java/**/integration/garmin/*.kt"
+    acceptance_checks:
+      - "cmd: ./gradlew test"
+      - "manual: connect/disconnect e sync con account test"
+    risk_flags:
+      - "security"
+      - "perf"
+    done_when:
+      - "AC-012, AC-013, AC-014, AC-018, AC-023 soddisfatti"
+      - "Token non persistiti in plain text"
+      - "Retry/backoff sync operativo"
+
+  - id: T-009
+    status: not-started
+    type: fix
+    title: "Harden offline and error UX"
+    depends_on:
+      - "T-003"
+      - "T-004"
+      - "T-008"
+    goal: "Rendere robusta la gestione errori rete/token e modalità offline con retry esplicito e messaggi non bloccanti."
+    non_goals:
+      - "Refactor completo UI"
+      - "Gestione errori analytics avanzata"
+    context_files:
+      - ".agents-work/2026-03-28-macro-app-spec/spec.md"
+      - ".agents-work/2026-03-28-macro-app-spec/architecture.md"
+      - ".agents-work/2026-03-28-macro-app-spec/acceptance.json"
+    files_expected:
+      - "app/src/main/java/**/ui/common/error/*.kt"
+      - "app/src/main/java/**/domain/error/*.kt"
+      - "app/src/test/java/**/integration/error/*.kt"
+    acceptance_checks:
+      - "cmd: ./gradlew test"
+      - "manual: timeout OFF e token scaduto gestiti senza crash"
+    risk_flags:
+      - "perf"
+    done_when:
+      - "AC-016 e AC-022 soddisfatti"
+      - "Messaggi errore consistenti e azione retry presente"
+      - "Crash su scenari rete degradata azzerati nei test"
+
+  - id: T-010
+    status: not-started
+    type: chore
+    title: "Add observability and telemetry"
+    depends_on:
+      - "T-004"
+      - "T-008"
+    goal: "Implementare eventi tecnici minimi, logging strutturato e metriche operative per funnel critici."
+    non_goals:
+      - "Business analytics avanzata"
+      - "Profilazione utente"
+    context_files:
+      - ".agents-work/2026-03-28-macro-app-spec/spec.md"
+      - ".agents-work/2026-03-28-macro-app-spec/architecture.md"
+      - ".agents-work/2026-03-28-macro-app-spec/acceptance.json"
+    files_expected:
+      - "app/src/main/java/**/observability/*.kt"
+      - "app/src/main/java/**/integration/analytics/*.kt"
+      - "app/src/test/java/**/observability/*.kt"
+    acceptance_checks:
+      - "cmd: ./gradlew test"
+      - "manual: verifica eventi food_search, meal_save, provider_sync, provider_sync_failed"
+    risk_flags:
+      - "security"
+      - "perf"
+    done_when:
+      - "AC-021 soddisfatto"
+      - "RNF-011 soddisfatto"
+      - "Redaction PII attiva nei log"
+
+  - id: T-011
+    status: not-started
+    type: feat
+    title: "Implement privacy data rights"
+    depends_on:
+      - "T-002"
+      - "T-006"
+    goal: "Implementare export dati utente e cancellazione completa dati locali con conferma esplicita da impostazioni privacy."
+    non_goals:
+      - "Sync cloud account"
+      - "Versioning storico override"
+    context_files:
+      - ".agents-work/2026-03-28-macro-app-spec/spec.md"
+      - ".agents-work/2026-03-28-macro-app-spec/architecture.md"
+      - ".agents-work/2026-03-28-macro-app-spec/acceptance.json"
+    files_expected:
+      - "app/src/main/java/**/ui/privacy/*.kt"
+      - "app/src/main/java/**/domain/usecase/*Export*.kt"
+      - "app/src/main/java/**/domain/usecase/*Delete*.kt"
+      - "app/src/test/java/**/privacy/*.kt"
+    acceptance_checks:
+      - "cmd: ./gradlew test"
+      - "manual: export file e cancellazione completa verificati"
+    risk_flags:
+      - "security"
+      - "breaking-change"
+    done_when:
+      - "AC-024 e AC-025 soddisfatti"
+      - "Conferma esplicita prima delete totale implementata"
+      - "Post-delete nessun dato locale residuo"
+
+  - id: T-012
+    status: not-started
+    type: test
+    title: "Execute functional and NFR tests"
+    depends_on:
+      - "T-005"
+      - "T-007"
+      - "T-008"
+      - "T-009"
+      - "T-010"
+      - "T-011"
+    goal: "Consolidare suite test (unit/integration/ui/performance/security checks) e verificare AC-001..AC-025."
+    non_goals:
+      - "Nuove feature"
+      - "Refactor architetturali"
+    context_files:
+      - ".agents-work/2026-03-28-macro-app-spec/spec.md"
+      - ".agents-work/2026-03-28-macro-app-spec/architecture.md"
+      - ".agents-work/2026-03-28-macro-app-spec/acceptance.json"
+    files_expected:
+      - "app/src/test/java/**"
+      - "app/src/androidTest/java/**"
+      - ".agents-work/2026-03-28-macro-app-spec/test-report.md"
+    acceptance_checks:
+      - "cmd: ./gradlew test"
+      - "cmd: ./gradlew connectedAndroidTest"
+      - "cmd: ./gradlew lint"
+      - "manual: checklist acceptance.json completata"
+    risk_flags:
+      - "perf"
+      - "security"
+    done_when:
+      - "AC-001..AC-025 con evidenza"
+      - "RNF-001..RNF-014 coperti o con deviazioni accettate"
+      - "Nessun blocker aperto"
+
+  - id: T-013
+    status: not-started
+    type: docs
+    title: "Finalize docs and release readiness"
+    depends_on:
+      - "T-012"
+    goal: "Aggiornare documentazione utente/dev, runbook integrazione Garmin e checklist rilascio beta."
+    non_goals:
+      - "Nuove integrazioni provider"
+      - "Nuove schermate MVP"
+    context_files:
+      - ".agents-work/2026-03-28-macro-app-spec/spec.md"
+      - ".agents-work/2026-03-28-macro-app-spec/architecture.md"
+      - ".agents-work/2026-03-28-macro-app-spec/acceptance.json"
+    files_expected:
+      - "README.md"
+      - ".agents-work/2026-03-28-macro-app-spec/release-checklist.md"
+      - ".agents-work/2026-03-28-macro-app-spec/operational-runbook.md"
+    acceptance_checks:
+      - "cmd: ./gradlew test"
+      - "manual: guida setup da zero <= 5 minuti verificata"
+    risk_flags:
+      - "security"
+    done_when:
+      - "README e runbook coerenti con implementazione"
+      - "Checklist beta completa"
+      - "Definition of done progetto soddisfatta"

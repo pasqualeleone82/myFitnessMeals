@@ -1,0 +1,511 @@
+{
+  "version": "1.0.0",
+  "scope": "MVP Android myFitnessMeals",
+  "global_preconditions": [
+    "Build installata su dispositivo/emulatore Android supportato",
+    "Catalogo cache locale inizializzato con dataset minimo di test",
+    "Connettivita disponibile per test integrazione OFF e Garmin",
+    "Account test Garmin valido per scenario OAuth",
+    "Feature flag debug attiva per osservare eventi/metriche tecniche"
+  ],
+  "metrics": {
+    "search_cache_p95_ms_max": 300,
+    "food_detail_open_p95_ms_max": 1000,
+    "meal_save_p95_ms_max": 400,
+    "crash_free_sessions_min_percent": 99.5,
+    "offline_core_success_rate_min_percent": 98
+  },
+  "acceptance_criteria": [
+    {
+      "id": "AC-001",
+      "description": "Onboarding completo con salvataggio profilo e target iniziali.",
+      "preconditions": [
+        "Installazione pulita",
+        "Utente non ancora configurato"
+      ],
+      "verification_method": [
+        "manual",
+        "automated-ui"
+      ],
+      "metrics": {
+        "onboarding_completion_rate_min_percent": 95
+      },
+      "validation_checklist": [
+        "Aprire app al primo avvio",
+        "Compilare tutti i campi obbligatori",
+        "Salvare e verificare persistenza valori"
+      ]
+    },
+    {
+      "id": "AC-002",
+      "description": "Creazione di almeno una voce per ciascun tipo pasto nella stessa giornata.",
+      "preconditions": [
+        "Profilo utente configurato"
+      ],
+      "verification_method": [
+        "manual"
+      ],
+      "metrics": {
+        "meal_type_coverage_required": 4
+      },
+      "validation_checklist": [
+        "Aggiungere alimento in colazione",
+        "Aggiungere alimento in pranzo",
+        "Aggiungere alimento in cena",
+        "Aggiungere alimento in spuntini",
+        "Verificare aggregato giornata"
+      ]
+    },
+    {
+      "id": "AC-003",
+      "description": "Ricerca testuale con comportamento cache-first e fallback OFF tracciabile.",
+      "preconditions": [
+        "Un alimento presente in cache",
+        "Un alimento assente in cache ma presente su OFF"
+      ],
+      "verification_method": [
+        "manual",
+        "integration"
+      ],
+      "metrics": {
+        "cache_hit_remote_calls_expected": 0,
+        "cache_miss_remote_calls_min": 1
+      },
+      "validation_checklist": [
+        "Ricercare alimento noto in cache",
+        "Verificare assenza chiamata OFF",
+        "Ricercare alimento non presente in cache",
+        "Verificare chiamata OFF e risultato"
+      ]
+    },
+    {
+      "id": "AC-004",
+      "description": "Ricerca barcode con gestione successo, non trovato e fallback codice manuale.",
+      "preconditions": [
+        "Scanner abilitato",
+        "Barcode valido disponibile"
+      ],
+      "verification_method": [
+        "manual"
+      ],
+      "metrics": {
+        "barcode_read_success_min_percent": 95
+      },
+      "validation_checklist": [
+        "Scansionare barcode valido",
+        "Scansionare barcode non presente",
+        "Inserire codice manualmente e cercare"
+      ]
+    },
+    {
+      "id": "AC-005",
+      "description": "Dettaglio alimento con aggiornamento realtime calorie e macro al cambio quantita.",
+      "preconditions": [
+        "Alimento disponibile nel dettaglio"
+      ],
+      "verification_method": [
+        "manual",
+        "automated-ui"
+      ],
+      "metrics": {
+        "recalc_latency_ms_max": 200
+      },
+      "validation_checklist": [
+        "Aprire dettaglio alimento",
+        "Variare quantita",
+        "Verificare aggiornamento valori senza refresh pagina"
+      ]
+    },
+    {
+      "id": "AC-006",
+      "description": "Nutrienti mancanti visualizzati come N/D senza blocco inserimento.",
+      "preconditions": [
+        "Alimento con nutrienti parziali"
+      ],
+      "verification_method": [
+        "manual"
+      ],
+      "metrics": {
+        "flow_blocking_errors_expected": 0
+      },
+      "validation_checklist": [
+        "Aprire alimento incompleto",
+        "Verificare campi N/D",
+        "Confermare aggiunta alimento"
+      ]
+    },
+    {
+      "id": "AC-007",
+      "description": "Override nutrienti persistito e prioritario nelle ricerche successive.",
+      "preconditions": [
+        "Alimento con dettagli modificabili"
+      ],
+      "verification_method": [
+        "manual",
+        "integration"
+      ],
+      "metrics": {
+        "override_reuse_success_min_percent": 100
+      },
+      "validation_checklist": [
+        "Modificare un nutriente",
+        "Salvare override",
+        "Ripetere ricerca e aprire dettaglio",
+        "Verificare valore override"
+      ]
+    },
+    {
+      "id": "AC-008",
+      "description": "Salvataggio impostazioni bloccato se macro non sommano a 100.",
+      "preconditions": [
+        "Schermata impostazioni disponibile"
+      ],
+      "verification_method": [
+        "manual",
+        "unit"
+      ],
+      "metrics": {
+        "invalid_macro_save_allowed_expected": 0
+      },
+      "validation_checklist": [
+        "Impostare macro 30/30/30",
+        "Tentare salvataggio e verificare blocco",
+        "Impostare macro 40/30/30",
+        "Verificare salvataggio consentito"
+      ]
+    },
+    {
+      "id": "AC-009",
+      "description": "Dashboard calorie visualizza obiettivo, assunte, bruciate e rimanenti.",
+      "preconditions": [
+        "Presenza dati giornata"
+      ],
+      "verification_method": [
+        "manual",
+        "automated-ui"
+      ],
+      "metrics": {
+        "required_calorie_fields_present": 4
+      },
+      "validation_checklist": [
+        "Aprire dashboard",
+        "Verificare 4 valori obbligatori",
+        "Verificare coerenza formula calorie rimanenti"
+      ]
+    },
+    {
+      "id": "AC-010",
+      "description": "Dashboard macro mostra tre indicatori separati (carbo, grassi, proteine) con doppia vista grammi + percentuali.",
+      "preconditions": [
+        "Dati macro disponibili"
+      ],
+      "verification_method": [
+        "manual"
+      ],
+      "metrics": {
+        "macro_indicators_required": 3,
+        "macro_representation_modes_required": 2
+      },
+      "validation_checklist": [
+        "Aprire card macro",
+        "Verificare presenza tre indicatori distinti",
+        "Verificare visualizzazione valori in grammi",
+        "Verificare visualizzazione valori in percentuali"
+      ]
+    },
+    {
+      "id": "AC-011",
+      "description": "Dashboard include widget passi, peso, calorie esercizio e tempo allenamento.",
+      "preconditions": [
+        "Layout dashboard inizializzato"
+      ],
+      "verification_method": [
+        "manual"
+      ],
+      "metrics": {
+        "widget_count_required": 4
+      },
+      "validation_checklist": [
+        "Aprire dashboard",
+        "Verificare widget passi",
+        "Verificare widget peso",
+        "Verificare widget calorie esercizio",
+        "Verificare widget tempo allenamento"
+      ]
+    },
+    {
+      "id": "AC-012",
+      "description": "Connessione Garmin completabile da impostazioni e disconnessione disponibile.",
+      "preconditions": [
+        "Credenziali account test Garmin"
+      ],
+      "verification_method": [
+        "manual",
+        "integration"
+      ],
+      "metrics": {
+        "connect_disconnect_success_min_percent": 95
+      },
+      "validation_checklist": [
+        "Avviare flusso connessione",
+        "Completare consenso OAuth",
+        "Verificare stato connesso",
+        "Disconnettere e verificare stato disconnesso"
+      ]
+    },
+    {
+      "id": "AC-013",
+      "description": "Sync Garmin importa passi, calorie attive e minuti allenamento quando disponibili.",
+      "preconditions": [
+        "Connessione Garmin attiva"
+      ],
+      "verification_method": [
+        "manual",
+        "integration"
+      ],
+      "metrics": {
+        "required_fields_synced_min": 3
+      },
+      "validation_checklist": [
+        "Avviare sync",
+        "Verificare valorizzazione passi",
+        "Verificare valorizzazione calorie attive",
+        "Verificare valorizzazione minuti allenamento"
+      ]
+    },
+    {
+      "id": "AC-014",
+      "description": "Stato ultimo sync visualizzato all'utente ed errore sync mostrato con notifica temporanea non bloccante.",
+      "preconditions": [
+        "Almeno un tentativo sync eseguito"
+      ],
+      "verification_method": [
+        "manual"
+      ],
+      "metrics": {
+        "sync_status_fields_present": 2
+      },
+      "validation_checklist": [
+        "Completare un sync riuscito",
+        "Verificare timestamp ultimo sync",
+        "Forzare errore sync e verificare stato errore",
+        "Verificare comparsa notifica temporanea"
+      ]
+    },
+    {
+      "id": "AC-015",
+      "description": "Storico giornaliero consultabile per almeno 90 giorni.",
+      "preconditions": [
+        "Dataset di test con >= 90 giornate"
+      ],
+      "verification_method": [
+        "manual",
+        "integration"
+      ],
+      "metrics": {
+        "history_days_min": 90
+      },
+      "validation_checklist": [
+        "Navigare giorno piu recente",
+        "Navigare giorno a -90",
+        "Verificare presenza dati aggregati"
+      ]
+    },
+    {
+      "id": "AC-016",
+      "description": "In offline, aggiunta alimento da cache e consultazione dashboard restano funzionanti.",
+      "preconditions": [
+        "Alimenti gia presenti in cache"
+      ],
+      "verification_method": [
+        "manual"
+      ],
+      "metrics": {
+        "offline_core_success_rate_min_percent": 98
+      },
+      "validation_checklist": [
+        "Disabilitare rete",
+        "Ricercare alimento in cache",
+        "Aggiungere alimento",
+        "Aprire dashboard e verificare aggiornamento"
+      ]
+    },
+    {
+      "id": "AC-017",
+      "description": "Eliminazione voce pasto aggiorna aggregati giornata in tempo reale.",
+      "preconditions": [
+        "Almeno due voci pasto presenti"
+      ],
+      "verification_method": [
+        "manual",
+        "automated-ui"
+      ],
+      "metrics": {
+        "aggregate_recalc_latency_ms_max": 300
+      },
+      "validation_checklist": [
+        "Eliminare una voce",
+        "Verificare decremento calorie",
+        "Verificare decremento macro"
+      ]
+    },
+    {
+      "id": "AC-018",
+      "description": "Token integrazione salvati in secure storage e non in plain text.",
+      "preconditions": [
+        "Connessione provider completata"
+      ],
+      "verification_method": [
+        "security-review",
+        "manual"
+      ],
+      "metrics": {
+        "plain_text_token_occurrences_expected": 0
+      },
+      "validation_checklist": [
+        "Eseguire connessione provider",
+        "Ispezionare persistenza locale",
+        "Confermare assenza token in chiaro"
+      ]
+    },
+    {
+      "id": "AC-019",
+      "description": "Crash-free sessions in ambiente test raggiungono la soglia definita.",
+      "preconditions": [
+        "Telemetry crash configurata"
+      ],
+      "verification_method": [
+        "monitoring"
+      ],
+      "metrics": {
+        "crash_free_sessions_min_percent": 99.5
+      },
+      "validation_checklist": [
+        "Eseguire smoke test sessioni",
+        "Raccogliere metrica crash-free",
+        "Confermare soglia minima"
+      ]
+    },
+    {
+      "id": "AC-020",
+      "description": "Soglie performance ricerca/salvataggio rispettate sui percentili definiti.",
+      "preconditions": [
+        "Benchmark strumentato"
+      ],
+      "verification_method": [
+        "performance-test"
+      ],
+      "metrics": {
+        "search_cache_p95_ms_max": 300,
+        "meal_save_p95_ms_max": 400
+      },
+      "validation_checklist": [
+        "Eseguire benchmark ricerca cache",
+        "Eseguire benchmark salvataggio voce",
+        "Confrontare risultati con soglie"
+      ]
+    },
+    {
+      "id": "AC-021",
+      "description": "Eventi analytics tecnici principali presenti con payload minimo obbligatorio.",
+      "preconditions": [
+        "Telemetry eventi configurata"
+      ],
+      "verification_method": [
+        "manual",
+        "integration"
+      ],
+      "metrics": {
+        "required_events_min": 4
+      },
+      "validation_checklist": [
+        "Generare evento ricerca",
+        "Generare evento aggiunta alimento",
+        "Generare evento sync",
+        "Generare evento errore",
+        "Verificare payload con campi minimi"
+      ]
+    },
+    {
+      "id": "AC-022",
+      "description": "Timeout OFF gestito con feedback utente e meccanismo retry senza crash.",
+      "preconditions": [
+        "Scenario rete degradato simulabile"
+      ],
+      "verification_method": [
+        "manual",
+        "integration"
+      ],
+      "metrics": {
+        "timeout_handling_crash_expected": 0,
+        "retry_action_available_expected": 1
+      },
+      "validation_checklist": [
+        "Simulare timeout OFF",
+        "Verificare messaggio non bloccante",
+        "Verificare presenza azione retry",
+        "Eseguire retry e confermare continuita app"
+      ]
+    },
+    {
+      "id": "AC-023",
+      "description": "Sync Garmin automatica avviata all'apertura app quando utente connesso.",
+      "preconditions": [
+        "Connessione Garmin attiva",
+        "App chiusa e riaperta"
+      ],
+      "verification_method": [
+        "manual",
+        "integration"
+      ],
+      "metrics": {
+        "app_open_sync_trigger_expected": 1
+      },
+      "validation_checklist": [
+        "Connettere provider Garmin",
+        "Chiudere app",
+        "Riaprire app",
+        "Verificare avvio sync automatica"
+      ]
+    },
+    {
+      "id": "AC-024",
+      "description": "Export dati utente disponibile da impostazioni privacy con file generato correttamente.",
+      "preconditions": [
+        "Dati utente presenti in app"
+      ],
+      "verification_method": [
+        "manual"
+      ],
+      "metrics": {
+        "export_success_min_percent": 100
+      },
+      "validation_checklist": [
+        "Aprire impostazioni privacy",
+        "Avviare export dati",
+        "Verificare creazione file",
+        "Verificare presenza sezioni minime (profilo, pasti, fitness, impostazioni)"
+      ]
+    },
+    {
+      "id": "AC-025",
+      "description": "Cancellazione completa dati utente locali disponibile con conferma esplicita.",
+      "preconditions": [
+        "Dati utente presenti in app"
+      ],
+      "verification_method": [
+        "manual",
+        "integration"
+      ],
+      "metrics": {
+        "full_delete_success_min_percent": 100
+      },
+      "validation_checklist": [
+        "Aprire impostazioni privacy",
+        "Avviare cancellazione completa",
+        "Confermare azione",
+        "Verificare assenza dati locali residui"
+      ]
+    }
+  ]
+}
