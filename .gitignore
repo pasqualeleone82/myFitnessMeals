@@ -1,14 +1,56 @@
 # Gradle local artifacts
 .gradle/
 .gradle-wrapper/
+**/.gradle/
 
 # Build outputs
 build/
 app/build/
+**/build/
+captures/
+outputs/
 
 # IDE
 .idea/
 *.iml
+.vscode/
+.fleet/
+.project
+.classpath
+.settings/
+
+# Android local config
+local.properties
+
+# Signing and secrets
+*.jks
+*.keystore
+*.pem
+*.p12
+keystore.properties
+secrets.properties
+google-services.json
+
+# Kotlin/Java crash logs and temp
+hs_err_pid*
+replay_pid*
+*.log
+
+# Android Studio / IntelliJ caches
+/.idea/caches/
+/.idea/libraries/
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+/.idea/deploymentTargetSelector.xml
+/.idea/compiler.xml
+
+# Mac/Linux/Windows OS files
+.AppleDouble
+.LSOverride
+Thumbs.db
+Desktop.ini
 
 # OS
 .DS_Store
