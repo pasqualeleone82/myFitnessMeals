@@ -1,25 +1,93 @@
 {
   "session": "2026-03-28-macro-app-spec",
-  "current_state": "PLAN",
+  "current_state": "IMPLEMENT_LOOP",
   "mode": "full",
   "assumptions": [
     "Formula default target kcal: Mifflin-St Jeor + activity factor + weekly-goal delta",
     "Sync Garmin MVP: app-open + manual, senza scheduler periodico",
     "Override nutrienti mantiene ultimo valore, senza storico",
     "Bootstrap T-001 usa script gradlew che scarica Gradle 8.9 e preferisce JDK 17/21 se disponibili",
-    "Lint/test richiedono SDK Android configurato via ANDROID_HOME o local.properties"
-  ],
-  "known_issues": [],
-  "user_decisions": [
+    "Lint/test richiedono SDK Android configurato via ANDROID_HOME o local.properties",
     "Profilo obiettivo selezionabile (perdita/mantenimento/aumento)",
     "Storico oltre 90 giorni confermato hard",
     "Dashboard macro in grammi e percentuali",
     "Nutrienti mancanti con visualizzazione discreta",
-    "Quick add '+' nice-to-have",
+    "Quick add '+' classificato come nice-to-have",
     "Errore sync Garmin con notifica temporanea",
     "Export dati e cancellazione completa dati richiesti in MVP",
     "Fitbit e Google Fit fuori scope MVP",
-    "KPI business non richiesti ora; validazione iniziale manuale utente"
+    "KPI business non richiesti ora; validazione iniziale manuale utente",
+    "T-002 usa Room con local_date in formato ISO-8601 (YYYY-MM-DD) e ricalcolo daily_summary dentro transazioni DB atomiche",
+    "T-002 FIX_REVIEW: delete meal_entry ricalcola daily_summary usando la local_date reale della entry eliminata; metriche fitness validate con controlli non-negative deterministici",
+    "T-002 note minori: deleteMealEntry canonico usa solo entryId (localDate legacy ignorata ma compatibile); nutrition_override usa food_id come PK unica"
   ],
-  "last_update": "2026-03-28T13:20:00Z"
+  "known_issues": [
+    "Warning non bloccante AGP: compileSdk=35 oltre il livello ufficialmente testato da plugin; valutare android.suppressUnsupportedCompileSdk=35 se il warning disturba la CI"
+  ],
+  "user_decisions": [
+    {
+      "decision_id": "UD-1",
+      "question": "Reviewer ha lasciato 2 note minori (firma API deleteMealEntry e PK duplicate in NutritionOverrideEntity): vuoi fixarle ora?",
+      "status": "answered",
+      "answer": "fix-now",
+      "asked_at": "2026-03-28T23:03:30Z",
+      "resolved_at": "2026-03-28T23:03:45Z",
+      "state_context": "FIX_REVIEW",
+      "resolution_reason": null
+    },
+    {
+      "decision_id": "UD-APPROVE-DESIGN",
+      "question": "Approvi la soluzione proposta in spec/architettura per procedere con implementazione?",
+      "status": "answered",
+      "answer": "approved",
+      "asked_at": "2026-03-28T22:46:24Z",
+      "resolved_at": "2026-03-28T22:50:49Z",
+      "state_context": "APPROVE_DESIGN",
+      "resolution_reason": null
+    },
+    {
+      "decision_id": "UD-REVIEW-STRATEGY",
+      "question": "Scegli la strategia di review/QA/security per la fase implementativa: per-batch o single-final.",
+      "status": "answered",
+      "answer": "per-batch",
+      "asked_at": "2026-03-28T22:45:16Z",
+      "resolved_at": "2026-03-28T22:46:06Z",
+      "state_context": "REVIEW_STRATEGY",
+      "resolution_reason": null
+    }
+  ],
+  "gate_tracking": {
+    "APPROVE_DESIGN": {
+      "correction_status": "none",
+      "last_correction_dispatch": {
+        "agent": null,
+        "task_id": null,
+        "at": null
+      }
+    }
+  },
+  "runtime_flags": {
+    "copilot_instructions_exists": false,
+    "copilot_checked_at": "2026-03-28T22:45:16Z",
+    "session_paused": true,
+    "pause_reason": "Fine giornata - handoff operativo richiesto",
+    "resume_from_task_id": "T-002",
+    "next_task_candidate": "T-003"
+  },
+  "retry_counts": {
+    "T-001": {
+      "FIX_REVIEW": 0,
+      "FIX_TESTS": 0,
+      "FIX_SECURITY": 0,
+      "FIX_BUILD": 0
+    },
+    "T-002": {
+      "FIX_REVIEW": 1,
+      "FIX_TESTS": 0,
+      "FIX_SECURITY": 0,
+      "FIX_BUILD": 1
+    }
+  },
+  "last_ci_result": "local-test-green",
+  "last_update": "2026-03-28T23:32:42Z"
 }

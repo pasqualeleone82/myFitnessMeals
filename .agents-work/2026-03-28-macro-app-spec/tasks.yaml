@@ -7,6 +7,21 @@ project:
     - "Security checks passed for token storage"
     - "Performance thresholds p95 documented and verified"
 
+handoff:
+  paused_at: "2026-03-28T23:32:42Z"
+  resume_from_task_id: "T-002"
+  next_ready_task_id: "T-003"
+  status_summary:
+    - "T-001 implementato"
+    - "T-002 implementato, da promuovere a completed dopo gate finali"
+    - "Test locali verdi con ./gradlew test --no-daemon"
+  first_commands_next_session:
+    - "./gradlew --no-daemon test"
+    - "./gradlew --no-daemon lint"
+    - "./gradlew --no-daemon tasks"
+  first_operational_step:
+    - "Chiudere formalmente i gate di T-002 (review/qa/integration) e poi avviare T-003"
+
 tasks:
   - id: T-001
     status: implemented
@@ -42,7 +57,7 @@ tasks:
       - "Standard codice definiti"
 
   - id: T-002
-    status: not-started
+    status: implemented
     type: feat
     title: "Implement local data foundation"
     depends_on:
