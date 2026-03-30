@@ -8,19 +8,20 @@ project:
     - "Performance thresholds p95 documented and verified"
 
 handoff:
-  paused_at: "2026-03-28T23:32:42Z"
-  resume_from_task_id: "T-002"
-  next_ready_task_id: "T-003"
+  paused_at: "2026-03-30T16:10:00Z"
+  resume_from_task_id: "T-004"
+  next_ready_task_id: "T-004"
   status_summary:
     - "T-001 implementato"
-    - "T-002 implementato, da promuovere a completed dopo gate finali"
-    - "Test locali verdi con ./gradlew test --no-daemon"
+    - "T-002 completed dopo gate review+QA+integration"
+    - "T-003 completed (scope split: hardening migration rinviato a T-003A)"
+    - "T-003A completed dopo evidenza performance migration + gate review/QA/integration"
   first_commands_next_session:
     - "./gradlew --no-daemon test"
     - "./gradlew --no-daemon lint"
     - "./gradlew --no-daemon tasks"
   first_operational_step:
-    - "Chiudere formalmente i gate di T-002 (review/qa/integration) e poi avviare T-003"
+    - "Eseguire connectedAndroidTest per validazione UI T-004"
 
 tasks:
   - id: T-001
@@ -57,7 +58,7 @@ tasks:
       - "Standard codice definiti"
 
   - id: T-002
-    status: implemented
+    status: completed
     type: feat
     title: "Implement local data foundation"
     depends_on:
@@ -87,7 +88,7 @@ tasks:
       - "AC-017 e RNF-013 tracciabili da test"
 
   - id: T-003
-    status: not-started
+    status: completed
     type: feat
     title: "Build Open Food Facts adapter"
     depends_on:
@@ -115,8 +116,36 @@ tasks:
       - "Mapping nutrienti e unita validato"
       - "AC-003, AC-004, AC-022 coperti da test"
 
+  - id: T-003A
+    status: completed
+    type: chore
+    title: "Hardening OFF perf migration follow-up"
+    depends_on:
+      - "T-003"
+    goal: "Isolare e completare hardening performance della migration OFF dedup come scope separato rispetto alla promozione T-003."
+    non_goals:
+      - "Riaprire implementazione funzionale T-003"
+      - "Cambiare decisione utente di split scope"
+    context_files:
+      - ".agents-work/2026-03-28-macro-app-spec/spec.md"
+      - ".agents-work/2026-03-28-macro-app-spec/architecture.md"
+      - ".agents-work/2026-03-28-macro-app-spec/acceptance.json"
+    files_expected:
+      - "app/src/main/java/**/data/local/migrations/*.kt"
+      - "app/src/androidTest/java/**/migration/*.kt"
+      - "app/src/test/java/**/migration/*.kt"
+    acceptance_checks:
+      - "cmd: ./gradlew --no-daemon test"
+      - "manual: validare tempo migrazione su dataset rappresentativo"
+    risk_flags:
+      - "perf"
+      - "breaking-change"
+    done_when:
+      - "Rischio perf migration tracciato e mitigato con evidenza"
+      - "Nessuna regressione funzionale su ricerca testo/barcode OFF"
+
   - id: T-004
-    status: not-started
+    status: implemented
     type: feat
     title: "Implement meal logging flows"
     depends_on:

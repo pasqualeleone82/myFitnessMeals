@@ -166,6 +166,74 @@ class LocalDiaryRepositoryTest {
     }
 
     @Test
+    fun updateMealEntry_recalculatesDailySummaryAtomicallyIncludingDateMove() = runTest {
+        val foodId = database.foodDao().upsert(
+            FoodItemEntity(
+                sourceId = "off-5",
+                source = "CACHE",
+                name = "Oats",
+                brand = "Brand",
+                barcode = "66666",
+                kcal100 = 380.0,
+                carb100 = 60.0,
+                fat100 = 7.0,
+                protein100 = 13.0,
+                lastSyncedAt = 1_700_000_000_000L,
+            )
+        )
+
+        val firstDate = "2026-04-03"
+        val secondDate = "2026-04-04"
+        repository.setDailyTarget(localDate = firstDate, kcalTarget = 2000.0)
+        repository.setDailyTarget(localDate = secondDate, kcalTarget = 2100.0)
+
+        val entryId = repository.addMealEntry(
+            NewMealEntry(
+                localDate = firstDate,
+                timezoneOffsetMin = 60,
+                mealType = MealType.BREAKFAST,
+                foodId = foodId,
+                quantityValue = 100.0,
+                quantityUnit = "g",
+                resolvedSource = ResolvedSource.CACHE,
+                kcalTotal = 400.0,
+                carbTotal = 50.0,
+                fatTotal = 10.0,
+                proteinTotal = 20.0,
+            )
+        )
+
+        val updated = repository.updateMealEntry(
+            entryId = entryId,
+            entry = NewMealEntry(
+                localDate = secondDate,
+                timezoneOffsetMin = 60,
+                mealType = MealType.DINNER,
+                foodId = foodId,
+                quantityValue = 150.0,
+                quantityUnit = "g",
+                resolvedSource = ResolvedSource.CACHE,
+                kcalTotal = 600.0,
+                carbTotal = 70.0,
+                fatTotal = 15.0,
+                proteinTotal = 30.0,
+            ),
+        )
+        assertTrue(updated)
+
+        val firstSummary = repository.getDailySummary(firstDate)
+        assertEquals(0.0, firstSummary?.kcalIntake ?: -1.0, 0.001)
+        assertEquals(2000.0, firstSummary?.kcalRemaining ?: 0.0, 0.001)
+
+        val secondSummary = repository.getDailySummary(secondDate)
+        assertEquals(600.0, secondSummary?.kcalIntake ?: 0.0, 0.001)
+        assertEquals(70.0, secondSummary?.carbTotal ?: 0.0, 0.001)
+        assertEquals(15.0, secondSummary?.fatTotal ?: 0.0, 0.001)
+        assertEquals(30.0, secondSummary?.proteinTotal ?: 0.0, 0.001)
+        assertEquals(1500.0, secondSummary?.kcalRemaining ?: 0.0, 0.001)
+    }
+
+    @Test
     fun upsertFitness_recalculatesBurnedAndRemaining() = runTest {
         val foodId = database.foodDao().upsert(
             FoodItemEntity(

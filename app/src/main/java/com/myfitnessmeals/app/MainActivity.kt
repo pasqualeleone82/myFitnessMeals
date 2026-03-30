@@ -3,24 +3,22 @@ package com.myfitnessmeals.app
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.myfitnessmeals.app.ui.meal.MealLoggingRoute
+import com.myfitnessmeals.app.ui.meal.MealLoggingViewModel
 
 class MainActivity : ComponentActivity() {
+    private val appGraph: AppGraph by lazy { AppGraph(applicationContext) }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             MaterialTheme {
-                Surface(modifier = Modifier.fillMaxSize()) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text(text = "myFitnessMeals bootstrap")
-                    }
-                }
+                val viewModel: MealLoggingViewModel = viewModel(
+                    factory = MealLoggingViewModel.factory(appGraph),
+                )
+                MealLoggingRoute(viewModel = viewModel)
             }
         }
     }

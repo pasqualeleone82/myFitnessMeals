@@ -19,7 +19,21 @@
     "KPI business non richiesti ora; validazione iniziale manuale utente",
     "T-002 usa Room con local_date in formato ISO-8601 (YYYY-MM-DD) e ricalcolo daily_summary dentro transazioni DB atomiche",
     "T-002 FIX_REVIEW: delete meal_entry ricalcola daily_summary usando la local_date reale della entry eliminata; metriche fitness validate con controlli non-negative deterministici",
-    "T-002 note minori: deleteMealEntry canonico usa solo entryId (localDate legacy ignorata ma compatibile); nutrition_override usa food_id come PK unica"
+    "T-002 note minori: deleteMealEntry canonico usa solo entryId (localDate legacy ignorata ma compatibile); nutrition_override usa food_id come PK unica",
+    "T-002 blocker fix: updateMealEntry implementato con ricalcolo daily_summary atomico anche su cambio data; LocalFitnessRepository ora ricalcola daily_summary internamente dopo ogni upsert fitness",
+    "T-003 introduce OffCatalogClient iniettato nel LocalFoodRepository per fallback cache-first testo/barcode con taxonomy errori OFF tipizzata",
+    "T-003 runtime OFF implementato con OffHttpCatalogClient (HttpURLConnection), mapping taxonomy completa (timeout, rate limit, unavailable, malformed payload, not found) e fallback remoto non silenziosamente disabilitabile",
+    "T-003 reviewer note: LocalFoodRepository normalizza limit con clamp difensivo 1..100 e riusa il valore normalizzato per query DAO e fallback OFF",
+    "T-003 blocker fix: OffHttpCatalogClient esegue boundary rete su dispatcher IO esplicito (iniettabile) per evitare lavoro bloccante su caller dispatcher",
+    "T-003 blocker fix: barcode OFF validato digits-only con lunghezze attese EAN/UPC (8/12/13/14) prima di costruire endpoint prodotto",
+    "T-003 final fix-review: ricerca locale usa escaping LIKE (%/_/\\) con ESCAPE esplicito; persistenza OFF resa idempotente via chiave canonica (sourceId -> barcode -> name+brand) senza migrazione schema",
+    "T-003 dedup atomica implementata con chiave canonica source+sourceId fallback barcode, vincolo UNIQUE DB + upsert OFF conflict-aware e migration Room v1->v2 con merge duplicati",
+    "T-003 migration policy override collision: keep latest override per food target by updated_at DESC (tie-break created_at DESC, source_food_id DESC), preservando riferimenti meal_entry",
+    "T-004 implementa UI Compose meal/search/barcode con preview porzione realtime, validazione quantita > 0 in UI+domain, salvataggio/cancellazione voce pasto e smoke androidTest del flusso",
+    "T-004 fix-review: preview job serializzato/cancellato in ViewModel per prevenire stale preview race mantenendo API e UX correnti",
+    "T-004 fix-review: copertura test rafforzata su AC-002 (4 meal type) e AC-017 (delete con ricalcolo aggregati) via unit test + androidTest",
+    "T-004 second blocker fix: rimosso seeding runtime dal percorso production (ViewModel non invoca piu ensureSeedFoods), con isolamento/seed esplicito in androidTest"
+    ,"T-003A hardening migration v1->v2 applica dedup e selezione latest-override con tabelle temporanee set-based (niente subquery correlate costose), mantenendo policy keep-latest"
   ],
   "known_issues": [
     "Warning non bloccante AGP: compileSdk=35 oltre il livello ufficialmente testato da plugin; valutare android.suppressUnsupportedCompileSdk=35 se il warning disturba la CI"
@@ -54,6 +68,66 @@
       "resolved_at": "2026-03-28T22:46:06Z",
       "state_context": "REVIEW_STRATEGY",
       "resolution_reason": null
+    },
+    {
+      "decision_id": "UD-2",
+      "question": "Confermi che devo continuare lo step 2 usando lo stato attuale del working tree, senza revert delle modifiche esistenti?",
+      "status": "answered",
+      "answer": "continue-with-current-working-tree (ignore .github/agents/00-orchestrator.md change)",
+      "asked_at": "2026-03-30T09:35:00Z",
+      "resolved_at": "2026-03-30T09:36:00Z",
+      "state_context": "ASK_USER",
+      "resolution_reason": null
+    },
+    {
+      "decision_id": "UD-3",
+      "question": "Vuoi che applichi subito il fix minore sul limite query (defensive clamp), oppure procediamo senza fix ora?",
+      "status": "answered",
+      "answer": "fix-now",
+      "asked_at": "2026-03-30T10:00:00Z",
+      "resolved_at": "2026-03-30T10:01:00Z",
+      "state_context": "ASK_USER",
+      "resolution_reason": null
+    },
+    {
+      "decision_id": "UD-4",
+      "question": "Scelta strategia per deduplica atomica OFF e migrazione",
+      "status": "answered",
+      "answer": "UNIQUE DB + upsert conflict-aware; key source+sourceId fallback barcode; migration autorizzata",
+      "asked_at": "2026-03-30T10:20:00Z",
+      "resolved_at": "2026-03-30T10:21:00Z",
+      "state_context": "ASK_USER",
+      "resolution_reason": null
+    },
+    {
+      "decision_id": "UD-5",
+      "question": "Come procedere sul blocker prestazionale migration T-003",
+      "status": "answered",
+      "answer": "split-scope",
+      "asked_at": "2026-03-30T10:40:00Z",
+      "resolved_at": "2026-03-30T10:41:00Z",
+      "state_context": "ASK_USER",
+      "resolution_reason": null
+    },
+    {
+      "decision_id": "UD-6",
+      "question": "Policy collision migration override",
+      "status": "answered",
+      "answer": "keep-latest-override and proceed",
+      "asked_at": "2026-03-30T10:45:00Z",
+      "resolved_at": "2026-03-30T10:46:00Z",
+      "state_context": "ASK_USER",
+      "resolution_reason": null
+    },
+    {
+      "decision_id": "UD-7",
+      "question": "Ordine lavori: T-004, poi T-003A, poi test UI",
+      "status": "answered",
+      "answer": "approved-order-T004-then-T003A-then-UI-tests",
+      "asked_at": "2026-03-30T15:30:00Z",
+      "resolved_at": "2026-03-30T15:30:00Z",
+      "state_context": "ASK_USER",
+      "resolution_reason": null
     }
   ],
   "gate_tracking": {
@@ -69,10 +143,10 @@
   "runtime_flags": {
     "copilot_instructions_exists": false,
     "copilot_checked_at": "2026-03-28T22:45:16Z",
-    "session_paused": true,
-    "pause_reason": "Fine giornata - handoff operativo richiesto",
-    "resume_from_task_id": "T-002",
-    "next_task_candidate": "T-003"
+    "session_paused": false,
+    "pause_reason": null,
+    "resume_from_task_id": "T-004",
+    "next_task_candidate": "T-004"
   },
   "retry_counts": {
     "T-001": {
@@ -86,8 +160,14 @@
       "FIX_TESTS": 0,
       "FIX_SECURITY": 0,
       "FIX_BUILD": 1
+    },
+    "T-003": {
+      "FIX_REVIEW": 3,
+      "FIX_TESTS": 0,
+      "FIX_SECURITY": 0,
+      "FIX_BUILD": 0
     }
   },
-  "last_ci_result": "local-test-green",
-  "last_update": "2026-03-28T23:32:42Z"
+  "last_ci_result": "green",
+  "last_update": "2026-03-30T16:38:00Z"
 }

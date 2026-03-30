@@ -1,0 +1,298 @@
+package com.myfitnessmeals.app.domain.usecase
+
+import androidx.room.Room
+import androidx.test.core.app.ApplicationProvider
+import com.myfitnessmeals.app.data.local.AppDatabase
+import com.myfitnessmeals.app.data.local.FoodItemEntity
+import com.myfitnessmeals.app.data.local.NutritionOverrideEntity
+import com.myfitnessmeals.app.data.repository.LocalDiaryRepository
+import com.myfitnessmeals.app.data.repository.LocalFoodRepository
+import com.myfitnessmeals.app.data.repository.LocalOverrideRepository
+import com.myfitnessmeals.app.domain.model.MealType
+import com.myfitnessmeals.app.domain.model.ResolvedSource
+import kotlinx.coroutines.test.runTest
+import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34])
+class MealLoggingUseCasesTest {
+    private lateinit var database: AppDatabase
+    private lateinit var foodRepository: LocalFoodRepository
+    private lateinit var overrideRepository: LocalOverrideRepository
+    private lateinit var diaryRepository: LocalDiaryRepository
+
+    @Before
+    fun setUp() {
+        database = Room.inMemoryDatabaseBuilder(
+            ApplicationProvider.getApplicationContext(),
+            AppDatabase::class.java,
+        ).allowMainThreadQueries().build()
+
+        foodRepository = LocalFoodRepository(
+            foodDao = database.foodDao(),
+            offCatalogClient = null,
+            nowEpochMillis = { 1_700_000_000_000L },
+        )
+        overrideRepository = LocalOverrideRepository(database.nutritionOverrideDao())
+        diaryRepository = LocalDiaryRepository(
+            db = database,
+            nowEpochMillis = { 1_700_000_000_000L },
+        )
+    }
+
+    @After
+    fun tearDown() {
+        database.close()
+    }
+
+    @Test
+    fun buildMealPreview_usesOverrideBeforeFoodAndFlagsMissingNutrients() = runTest {
+        val foodId = foodRepository.upsertFood(
+            FoodItemEntity(
+                sourceId = "local-1",
+                source = "CACHE",
+                name = "Soup",
+                brand = "Brand",
+                barcode = "1000000000001",
+                kcal100 = 50.0,
+                carb100 = null,
+                fat100 = 1.0,
+                protein100 = 2.0,
+                lastSyncedAt = 1_700_000_000_000L,
+            )
+        )
+
+        overrideRepository.upsertOverride(
+            NutritionOverrideEntity(
+                foodId = foodId,
+                kcal100 = 80.0,
+                carb100 = 10.0,
+                fat100 = null,
+                protein100 = 3.0,
+                note = null,
+                createdAt = 1_700_000_000_000L,
+                updatedAt = 1_700_000_000_000L,
+            )
+        )
+
+        val preview = BuildMealPreviewUseCase(overrideRepository).invoke(
+            food = MealFoodCandidate(
+                id = foodId,
+                name = "Soup",
+                brand = "Brand",
+                source = ResolvedSource.CACHE,
+                kcal100 = 50.0,
+                carb100 = null,
+                fat100 = 1.0,
+                protein100 = 2.0,
+            ),
+            quantity = 150.0,
+            unit = "g",
+        )
+
+        assertEquals(120.0, preview.kcalTotal, 0.001)
+        assertEquals(15.0, preview.carbTotal, 0.001)
+        assertEquals(1.5, preview.fatTotal, 0.001)
+        assertEquals(4.5, preview.proteinTotal, 0.001)
+        assertTrue(preview.resolvedSource == ResolvedSource.OVERRIDE)
+        assertTrue(!preview.kcalMissing)
+        assertTrue(!preview.carbMissing)
+        assertTrue(!preview.fatMissing)
+        assertTrue(!preview.proteinMissing)
+    }
+
+    @Test
+    fun saveMealEntry_withNonPositiveQuantity_throwsDeterministicError() = runTest {
+        val foodId = foodRepository.upsertFood(
+            FoodItemEntity(
+                sourceId = "local-2",
+                source = "CACHE",
+                name = "Chicken",
+                brand = "Brand",
+                barcode = "1000000000002",
+                kcal100 = 165.0,
+                carb100 = 0.0,
+                fat100 = 3.0,
+                protein100 = 31.0,
+                lastSyncedAt = 1_700_000_000_000L,
+            )
+        )
+
+        val saveUseCase = SaveMealEntryUseCase(
+            diaryRepository = diaryRepository,
+            buildMealPreviewUseCase = BuildMealPreviewUseCase(overrideRepository),
+        )
+
+        try {
+            saveUseCase(
+                SaveMealEntryCommand(
+                    mealType = MealType.BREAKFAST,
+                    food = MealFoodCandidate(
+                        id = foodId,
+                        name = "Chicken",
+                        brand = "Brand",
+                        source = ResolvedSource.CACHE,
+                        kcal100 = 165.0,
+                        carb100 = 0.0,
+                        fat100 = 3.0,
+                        protein100 = 31.0,
+                    ),
+                    quantity = 0.0,
+                    unit = "g",
+                )
+            )
+            throw AssertionError("Expected IllegalArgumentException for non-positive quantity")
+        } catch (error: IllegalArgumentException) {
+            assertEquals("Meal quantity must be positive", error.message)
+        }
+    }
+
+    @Test
+    fun saveMealEntry_logsAllMealTypesInSameDay_snapshotContainsAllTypes() = runTest {
+        val foodId = foodRepository.upsertFood(
+            FoodItemEntity(
+                sourceId = "local-3",
+                source = "CACHE",
+                name = "Yogurt",
+                brand = "Brand",
+                barcode = "1000000000003",
+                kcal100 = 100.0,
+                carb100 = 8.0,
+                fat100 = 4.0,
+                protein100 = 9.0,
+                lastSyncedAt = 1_700_000_000_000L,
+            )
+        )
+
+        val saveUseCase = SaveMealEntryUseCase(
+            diaryRepository = diaryRepository,
+            buildMealPreviewUseCase = BuildMealPreviewUseCase(overrideRepository),
+            nowDateProvider = { java.time.LocalDate.of(2026, 3, 30) },
+            nowOffsetProvider = { java.time.ZoneOffset.UTC },
+        )
+        val snapshotUseCase = GetMealDaySnapshotUseCase(
+            diaryRepository = diaryRepository,
+            foodRepository = foodRepository,
+            nowDateProvider = { java.time.LocalDate.of(2026, 3, 30) },
+        )
+
+        MealType.entries.forEach { mealType ->
+            saveUseCase(
+                SaveMealEntryCommand(
+                    mealType = mealType,
+                    food = MealFoodCandidate(
+                        id = foodId,
+                        name = "Yogurt",
+                        brand = "Brand",
+                        source = ResolvedSource.CACHE,
+                        kcal100 = 100.0,
+                        carb100 = 8.0,
+                        fat100 = 4.0,
+                        protein100 = 9.0,
+                    ),
+                    quantity = 100.0,
+                    unit = "g",
+                )
+            )
+        }
+
+        val snapshot = snapshotUseCase()
+        val loggedMealTypes = snapshot.entries.map { it.mealType }.toSet()
+
+        assertEquals(MealType.entries.size, snapshot.entries.size)
+        assertEquals(MealType.entries.toSet(), loggedMealTypes)
+        assertEquals(400.0, snapshot.kcalIntake, 0.001)
+        assertEquals(32.0, snapshot.carbTotal, 0.001)
+        assertEquals(16.0, snapshot.fatTotal, 0.001)
+        assertEquals(36.0, snapshot.proteinTotal, 0.001)
+    }
+
+    @Test
+    fun deleteMealEntry_updatesSnapshotAggregatesAfterRemoval() = runTest {
+        val foodId = foodRepository.upsertFood(
+            FoodItemEntity(
+                sourceId = "local-4",
+                source = "CACHE",
+                name = "Salmon",
+                brand = "Brand",
+                barcode = "1000000000004",
+                kcal100 = 200.0,
+                carb100 = 0.0,
+                fat100 = 12.0,
+                protein100 = 22.0,
+                lastSyncedAt = 1_700_000_000_000L,
+            )
+        )
+
+        val saveUseCase = SaveMealEntryUseCase(
+            diaryRepository = diaryRepository,
+            buildMealPreviewUseCase = BuildMealPreviewUseCase(overrideRepository),
+            nowDateProvider = { java.time.LocalDate.of(2026, 3, 30) },
+            nowOffsetProvider = { java.time.ZoneOffset.UTC },
+        )
+        val deleteUseCase = DeleteMealEntryUseCase(diaryRepository)
+        val snapshotUseCase = GetMealDaySnapshotUseCase(
+            diaryRepository = diaryRepository,
+            foodRepository = foodRepository,
+            nowDateProvider = { java.time.LocalDate.of(2026, 3, 30) },
+        )
+
+        val breakfastId = saveUseCase(
+            SaveMealEntryCommand(
+                mealType = MealType.BREAKFAST,
+                food = MealFoodCandidate(
+                    id = foodId,
+                    name = "Salmon",
+                    brand = "Brand",
+                    source = ResolvedSource.CACHE,
+                    kcal100 = 200.0,
+                    carb100 = 0.0,
+                    fat100 = 12.0,
+                    protein100 = 22.0,
+                ),
+                quantity = 100.0,
+                unit = "g",
+            )
+        )
+        saveUseCase(
+            SaveMealEntryCommand(
+                mealType = MealType.LUNCH,
+                food = MealFoodCandidate(
+                    id = foodId,
+                    name = "Salmon",
+                    brand = "Brand",
+                    source = ResolvedSource.CACHE,
+                    kcal100 = 200.0,
+                    carb100 = 0.0,
+                    fat100 = 12.0,
+                    protein100 = 22.0,
+                ),
+                quantity = 200.0,
+                unit = "g",
+            )
+        )
+
+        val snapshotBeforeDelete = snapshotUseCase()
+        assertEquals(600.0, snapshotBeforeDelete.kcalIntake, 0.001)
+        assertEquals(36.0, snapshotBeforeDelete.fatTotal, 0.001)
+        assertEquals(66.0, snapshotBeforeDelete.proteinTotal, 0.001)
+
+        val deleted = deleteUseCase(breakfastId)
+        assertTrue(deleted)
+
+        val snapshotAfterDelete = snapshotUseCase()
+        assertEquals(1, snapshotAfterDelete.entries.size)
+        assertFalse(snapshotAfterDelete.entries.any { it.id == breakfastId })
+        assertEquals(400.0, snapshotAfterDelete.kcalIntake, 0.001)
+        assertEquals(24.0, snapshotAfterDelete.fatTotal, 0.001)
+        assertEquals(44.0, snapshotAfterDelete.proteinTotal, 0.001)
+    }
+}

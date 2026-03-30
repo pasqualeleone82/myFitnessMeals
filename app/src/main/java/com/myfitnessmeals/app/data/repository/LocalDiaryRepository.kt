@@ -39,6 +39,41 @@ class LocalDiaryRepository(
         }
     }
 
+    suspend fun updateMealEntry(entryId: Long, entry: NewMealEntry): Boolean {
+        require(entry.quantityValue > 0) { "Meal quantity must be positive" }
+        val now = nowEpochMillis()
+
+        return db.withTransaction {
+            val existing = db.mealEntryDao().getById(entryId) ?: return@withTransaction false
+            val previousLocalDate = existing.localDate
+            val updated = db.mealEntryDao().update(
+                existing.copy(
+                    localDate = entry.localDate,
+                    timezoneOffsetMin = entry.timezoneOffsetMin,
+                    mealType = entry.mealType.name,
+                    foodId = entry.foodId,
+                    quantityValue = entry.quantityValue,
+                    quantityUnit = entry.quantityUnit,
+                    resolvedSource = entry.resolvedSource.name,
+                    kcalTotal = entry.kcalTotal,
+                    carbTotal = entry.carbTotal,
+                    fatTotal = entry.fatTotal,
+                    proteinTotal = entry.proteinTotal,
+                    updatedAt = now,
+                )
+            ) > 0
+
+            if (updated) {
+                recalculateDailySummaryLocked(previousLocalDate)
+                if (entry.localDate != previousLocalDate) {
+                    recalculateDailySummaryLocked(entry.localDate)
+                }
+            }
+
+            updated
+        }
+    }
+
     suspend fun deleteMealEntry(entryId: Long): Boolean {
         return db.withTransaction {
             val actualLocalDate = db.mealEntryDao().getById(entryId)?.localDate

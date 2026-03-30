@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Update
 
 @Dao
 interface MealEntryDao {
@@ -12,6 +13,9 @@ interface MealEntryDao {
 
     @Query("SELECT * FROM meal_entry WHERE id = :id LIMIT 1")
     suspend fun getById(id: Long): MealEntryEntity?
+
+    @Update(onConflict = OnConflictStrategy.ABORT)
+    suspend fun update(entry: MealEntryEntity): Int
 
     @Query("DELETE FROM meal_entry WHERE id = :id")
     suspend fun deleteById(id: Long): Int

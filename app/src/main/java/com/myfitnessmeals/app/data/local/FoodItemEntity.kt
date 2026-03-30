@@ -10,6 +10,7 @@ import androidx.room.PrimaryKey
     indices = [
         Index(value = ["barcode"], unique = false),
         Index(value = ["name"], unique = false),
+        Index(value = ["canonical_external_key"], unique = true),
     ],
 )
 data class FoodItemEntity(
@@ -31,4 +32,6 @@ data class FoodItemEntity(
     val protein100: Double?,
     @ColumnInfo(name = "last_synced_at")
     val lastSyncedAt: Long,
+    @ColumnInfo(name = "canonical_external_key")
+    val canonicalExternalKey: String? = null,
 )
