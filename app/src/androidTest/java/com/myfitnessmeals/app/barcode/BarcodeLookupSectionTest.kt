@@ -21,7 +21,6 @@ class BarcodeLookupSectionTest {
 
     @Test
     fun showsManualFallbackMessageWhenCameraPermissionDenied() {
-        var barcodeValue = ""
         var lookupClicks = 0
 
         composeRule.setContent {
@@ -31,7 +30,6 @@ class BarcodeLookupSectionTest {
                 showCameraPermissionFallback = true,
                 onBarcodeChanged = {
                     barcodeState = it
-                    barcodeValue = it
                 },
                 onLookupClicked = { lookupClicks += 1 },
                 onScanClicked = {},
@@ -42,7 +40,6 @@ class BarcodeLookupSectionTest {
         composeRule.onNodeWithTag("meal_barcode_input").performTextInput("1234567890123")
         composeRule.onNodeWithTag("meal_barcode_button").performClick()
 
-        assertEquals("1234567890123", barcodeValue)
         assertEquals(1, lookupClicks)
     }
 

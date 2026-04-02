@@ -57,7 +57,9 @@
     "T-008 tests: aggiunti GarminIntegrationServiceTest (unit) e GarminSettingsFlowSmokeTest (androidTest)",
     "T-009 implemented: Search OFF error mapping uniformata (timeout/rate limit/unavailable/malformed) con messaggi user-friendly",
     "T-009 implemented: retry esplicito non bloccante aggiunto in MealLoggingScreen con azione Retry su errori retryable",
-    "T-009 gate evidence: ./gradlew --no-daemon test e ./gradlew --no-daemon connectedAndroidTest verdi (13 instrumented test)"
+    "T-009 gate evidence: ./gradlew --no-daemon test verde; connectedAndroidTest attualmente bloccato su 2 smoke meal flaky (timeout su wait mealEntryCount)",
+    "CR UX nav: tab top non piu coperte dalla status bar tramite statusBarsPadding, con tab bar compatibile test tags esistenti",
+    "APK debug generato/installato/avviato su emulatore: app/build/outputs/apk/debug/app-debug.apk"
   ],
   "known_issues": [
     "Warning non bloccante AGP: compileSdk=35 oltre il livello ufficialmente testato da plugin; valutare android.suppressUnsupportedCompileSdk=35 se il warning disturba la CI",
@@ -239,6 +241,6 @@
       "FIX_BUILD": 0
     }
   },
-  "last_ci_result": "green",
-  "last_update": "2026-04-02T03:55:00Z"
+  "last_ci_result": "yellow",
+  "last_update": "2026-04-02T04:30:00Z"
 }

@@ -45,7 +45,14 @@
    - mapping errori OFF coerente e user-friendly (timeout/rate limit/unavailable/malformed)
    - retry esplicito in UI meal (`meal_error_retry`) su errori retryable
    - test UI aggiornati su stato errore barcode e presenza retry
-   - gate verdi: `./gradlew --no-daemon test` e `./gradlew --no-daemon connectedAndroidTest` (13 test strumentati)
+   - gate parziali: `./gradlew --no-daemon test` verde; `connectedAndroidTest` bloccato da 2 smoke meal flaky da stabilizzare
+- CR UX navigazione applicata:
+   - tab menu non coperto da status icon (`statusBarsPadding`)
+   - layout tab compatibile con test tags correnti
+- APK pronta per test manuale:
+   - `./gradlew --no-daemon assembleDebug`
+   - `adb install -r app/build/outputs/apk/debug/app-debug.apk`
+   - `adb shell am start -n com.myfitnessmeals.app/.MainActivity`
 - T-006 chiuso con:
    - onboarding persistente (profilo obiettivo + target kcal/macro)
    - `GoalComputationService` con validazione macro (somma = 100)
@@ -67,3 +74,4 @@
    - simulare timeout OFF e verificare messaggio non bloccante
    - verificare presenza azione Retry e retry senza crash
    - verificare che offline su cache continui a permettere ricerca/aggiunta alimento
+   - dopo fix smoke meal flaky, rieseguire `connectedAndroidTest` e promuovere T-009 a completed

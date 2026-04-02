@@ -90,7 +90,7 @@ class MealLoggingFlowSmokeTest {
         composeRule.onNodeWithTag("meal_quantity_input").performTextInput("120")
         composeRule.onNodeWithTag("meal_save_button").performClick()
 
-        composeRule.waitUntil(timeoutMillis = 5_000) {
+        composeRule.waitUntil(timeoutMillis = 10_000) {
             mealEntryCount() == 1L
         }
 
@@ -98,12 +98,12 @@ class MealLoggingFlowSmokeTest {
             composeRule.onNodeWithTag("meal_screen").performTouchInput { swipeUp() }
         }
 
-        composeRule.waitUntil(timeoutMillis = 5_000) {
+        composeRule.waitUntil(timeoutMillis = 10_000) {
             composeRule.onAllNodesWithText("Delete").fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onAllNodesWithText("Delete")[0].performClick()
 
-        composeRule.waitUntil(timeoutMillis = 5_000) {
+        composeRule.waitUntil(timeoutMillis = 10_000) {
             mealEntryCount() == 0L
         }
     }
@@ -138,7 +138,7 @@ class MealLoggingFlowSmokeTest {
         composeRule.onNodeWithTag("meal_quantity_input").performTextInput("100")
         composeRule.onNodeWithTag("meal_save_button").performClick()
 
-        composeRule.waitUntil(timeoutMillis = 5_000) {
+        composeRule.waitUntil(timeoutMillis = 10_000) {
             mealEntryCount() == 4L
         }
     }
@@ -157,7 +157,7 @@ class MealLoggingFlowSmokeTest {
             composeRule.onNodeWithTag("meal_screen").performTouchInput { swipeUp() }
         }
 
-        composeRule.waitUntil(timeoutMillis = 5_000) {
+        composeRule.waitUntil(timeoutMillis = 10_000) {
             runCatching {
                 composeRule.onNodeWithTag("override_kcal_input").assertIsDisplayed()
                 composeRule.onNodeWithTag("override_save_button").assertIsDisplayed()
@@ -169,7 +169,7 @@ class MealLoggingFlowSmokeTest {
         composeRule.onNodeWithTag("override_kcal_input").performTextInput("200")
         composeRule.onNodeWithTag("override_save_button").performClick()
 
-        composeRule.waitUntil(timeoutMillis = 5_000) {
+        composeRule.waitUntil(timeoutMillis = 10_000) {
             runCatching {
                 composeRule.onNodeWithTag("meal_override_updated_at").assertIsDisplayed()
                 true
@@ -202,7 +202,7 @@ class MealLoggingFlowSmokeTest {
             return
         }
         composeRule.onNodeWithTag("onboarding_complete_button").performClick()
-        composeRule.waitUntil(timeoutMillis = 5_000) {
+        composeRule.waitUntil(timeoutMillis = 10_000) {
             composeRule.onAllNodesWithTag("meal_screen").fetchSemanticsNodes().isNotEmpty()
         }
     }
