@@ -149,6 +149,11 @@ class LocalDiaryRepository(
 
     suspend fun getDailySummary(localDate: String): DailySummaryEntity? = db.dailySummaryDao().getByDate(localDate)
 
+    suspend fun getDailySummariesInRange(
+        startDateInclusive: String,
+        endDateInclusive: String,
+    ): List<DailySummaryEntity> = db.dailySummaryDao().getByDateRange(startDateInclusive, endDateInclusive)
+
     suspend fun getMealEntries(localDate: String): List<MealEntryEntity> = db.mealEntryDao().getByDate(localDate)
 
     private suspend fun recalculateDailySummaryLocked(localDate: String) {

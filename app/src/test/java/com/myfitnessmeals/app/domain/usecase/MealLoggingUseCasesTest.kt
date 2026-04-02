@@ -14,6 +14,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -294,5 +295,126 @@ class MealLoggingUseCasesTest {
         assertEquals(400.0, snapshotAfterDelete.kcalIntake, 0.001)
         assertEquals(24.0, snapshotAfterDelete.fatTotal, 0.001)
         assertEquals(44.0, snapshotAfterDelete.proteinTotal, 0.001)
+    }
+
+    @Test
+    fun saveNutritionOverride_persistsAndKeepsCreatedAtOnUpdate() = runTest {
+        val foodId = foodRepository.upsertFood(
+            FoodItemEntity(
+                sourceId = "local-5",
+                source = "CACHE",
+                name = "Beans",
+                brand = "Brand",
+                barcode = "1000000000005",
+                kcal100 = 120.0,
+                carb100 = 20.0,
+                fat100 = 1.0,
+                protein100 = 8.0,
+                lastSyncedAt = 1_700_000_000_000L,
+            )
+        )
+
+        var clock = 1_800_000_000_000L
+        val saveOverrideUseCase = SaveNutritionOverrideUseCase(
+            overrideRepository = overrideRepository,
+            nowEpochMillis = { clock },
+        )
+
+        saveOverrideUseCase(
+            SaveNutritionOverrideCommand(
+                foodId = foodId,
+                kcal100 = 140.0,
+                carb100 = null,
+                fat100 = null,
+                protein100 = 10.0,
+                note = " label ",
+            )
+        )
+
+        val firstOverride = overrideRepository.getOverrideByFoodId(foodId)
+        assertNotNull(firstOverride)
+        assertEquals(140.0, firstOverride?.kcal100 ?: 0.0, 0.001)
+        assertEquals(10.0, firstOverride?.protein100 ?: 0.0, 0.001)
+        assertEquals("label", firstOverride?.note)
+        assertEquals(1_800_000_000_000L, firstOverride?.createdAt)
+        assertEquals(1_800_000_000_000L, firstOverride?.updatedAt)
+
+        clock = 1_800_000_100_000L
+        saveOverrideUseCase(
+            SaveNutritionOverrideCommand(
+                foodId = foodId,
+                kcal100 = 150.0,
+                carb100 = 22.0,
+                fat100 = 2.0,
+                protein100 = 11.0,
+                note = "updated",
+            )
+        )
+
+        val updatedOverride = overrideRepository.getOverrideByFoodId(foodId)
+        assertNotNull(updatedOverride)
+        assertEquals(150.0, updatedOverride?.kcal100 ?: 0.0, 0.001)
+        assertEquals(22.0, updatedOverride?.carb100 ?: 0.0, 0.001)
+        assertEquals(2.0, updatedOverride?.fat100 ?: 0.0, 0.001)
+        assertEquals(11.0, updatedOverride?.protein100 ?: 0.0, 0.001)
+        assertEquals("updated", updatedOverride?.note)
+        assertEquals(1_800_000_000_000L, updatedOverride?.createdAt)
+        assertEquals(1_800_000_100_000L, updatedOverride?.updatedAt)
+    }
+
+    @Test
+    fun saveNutritionOverride_requiresAtLeastOneNutrient() = runTest {
+        val saveOverrideUseCase = SaveNutritionOverrideUseCase(overrideRepository)
+        try {
+            saveOverrideUseCase(
+                SaveNutritionOverrideCommand(
+                    foodId = 1L,
+                    kcal100 = null,
+                    carb100 = null,
+                    fat100 = null,
+                    protein100 = null,
+                    note = null,
+                )
+            )
+            throw AssertionError("Expected IllegalArgumentException when all nutrients are null")
+        } catch (error: IllegalArgumentException) {
+            assertEquals("At least one nutrient override is required", error.message)
+        }
+    }
+
+    @Test
+    fun deleteNutritionOverride_removesExistingOverride() = runTest {
+        val foodId = foodRepository.upsertFood(
+            FoodItemEntity(
+                sourceId = "local-6",
+                source = "CACHE",
+                name = "Milk",
+                brand = "Brand",
+                barcode = "1000000000006",
+                kcal100 = 60.0,
+                carb100 = 5.0,
+                fat100 = 3.2,
+                protein100 = 3.1,
+                lastSyncedAt = 1_700_000_000_000L,
+            )
+        )
+
+        overrideRepository.upsertOverride(
+            NutritionOverrideEntity(
+                foodId = foodId,
+                kcal100 = 70.0,
+                carb100 = 6.0,
+                fat100 = 3.5,
+                protein100 = 3.6,
+                note = "manual",
+                createdAt = 1_700_000_000_000L,
+                updatedAt = 1_700_000_000_000L,
+            )
+        )
+
+        val deleteUseCase = DeleteNutritionOverrideUseCase(overrideRepository)
+        val deleted = deleteUseCase(foodId)
+        assertTrue(deleted)
+        assertEquals(null, overrideRepository.getOverrideByFoodId(foodId))
     }
 }

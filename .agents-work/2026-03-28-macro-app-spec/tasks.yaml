@@ -8,20 +8,28 @@ project:
     - "Performance thresholds p95 documented and verified"
 
 handoff:
-  paused_at: "2026-03-30T16:10:00Z"
-  resume_from_task_id: "T-004"
-  next_ready_task_id: "T-004"
+  paused_at: "2026-04-02T03:55:00Z"
+  resume_from_task_id: "T-009"
+  next_ready_task_id: "T-009"
   status_summary:
     - "T-001 implementato"
     - "T-002 completed dopo gate review+QA+integration"
     - "T-003 completed (scope split: hardening migration rinviato a T-003A)"
     - "T-003A completed dopo evidenza performance migration + gate review/QA/integration"
+    - "T-004 completed con connectedAndroidTest green su device fisico"
+    - "T-005 completed: workflow override nutrienti + provenance tecnica + policy resolver testata"
+    - "T-006 completed: onboarding + settings persistenti con validazione macro=100 e goal computation service"
+    - "T-007 completed: dashboard/history validati con gate QA verdi (unit + connectedAndroidTest)"
+    - "T-014 completed: OFF text-search Nutella-like test validato con suite repository verde"
+    - "T-015 completed: camera scan con fallback manuale + opzione tema System/Light/Dark persistente in settings"
+    - "T-008 implemented: Garmin connect/disconnect/sync app-open+manual con token store cifrato e stato provider in settings"
+    - "T-009 implemented: UX errori OFF con messaggi consistenti e retry esplicito non bloccante nel flusso meal"
   first_commands_next_session:
     - "./gradlew --no-daemon test"
     - "./gradlew --no-daemon lint"
     - "./gradlew --no-daemon tasks"
   first_operational_step:
-    - "Eseguire connectedAndroidTest per validazione UI T-004"
+    - "Eseguire validazione manuale T-009 su timeout OFF (messaggio + retry) e promuovere a completed"
 
 tasks:
   - id: T-001
@@ -145,7 +153,7 @@ tasks:
       - "Nessuna regressione funzionale su ricerca testo/barcode OFF"
 
   - id: T-004
-    status: implemented
+    status: completed
     type: feat
     title: "Implement meal logging flows"
     depends_on:
@@ -177,7 +185,7 @@ tasks:
       - "Aggiornamento realtime calorie/macro verificato"
 
   - id: T-005
-    status: not-started
+    status: completed
     type: feat
     title: "Add nutrition override workflow"
     depends_on:
@@ -207,7 +215,7 @@ tasks:
       - "Audit base timestamp override disponibile"
 
   - id: T-006
-    status: not-started
+    status: completed
     type: feat
     title: "Implement onboarding and settings"
     depends_on:
@@ -236,7 +244,7 @@ tasks:
       - "Profilo utente persistente su riavvio app"
 
   - id: T-007
-    status: not-started
+    status: completed
     type: feat
     title: "Build dashboard and history"
     depends_on:
@@ -267,7 +275,7 @@ tasks:
       - "Rendering dashboard fluido su device di riferimento"
 
   - id: T-008
-    status: not-started
+    status: implemented
     type: feat
     title: "Integrate Garmin auth and sync"
     depends_on:
@@ -300,7 +308,7 @@ tasks:
       - "Retry/backoff sync operativo"
 
   - id: T-009
-    status: not-started
+    status: implemented
     type: fix
     title: "Harden offline and error UX"
     depends_on:
@@ -453,3 +461,84 @@ tasks:
       - "README e runbook coerenti con implementazione"
       - "Checklist beta completa"
       - "Definition of done progetto soddisfatta"
+
+  - id: T-014
+    status: completed
+    type: test
+    title: "Add OFF text-search success integration test with Nutella-like payload"
+    depends_on:
+      - "T-003"
+      - "T-004"
+      - "T-005"
+    goal: "Aggiungere un test di integrazione che verifichi successo ricerca testuale cache-miss su OFF e mapping nutrienti corretto usando payload Nutella-like, senza regressioni su policy di origine dato."
+    non_goals:
+      - "Non modificare UX o schermate"
+      - "Non introdurre nuovi endpoint OFF"
+      - "Non eseguire emulator o Gradle in questa fase planner"
+    context_files:
+      - ".agents-work/2026-03-28-macro-app-spec/spec.md"
+      - ".agents-work/2026-03-28-macro-app-spec/architecture.md"
+      - ".agents-work/2026-03-28-macro-app-spec/acceptance.json"
+      - ".agents-work/2026-03-28-macro-app-spec/tasks.yaml"
+    files_expected:
+      - "app/src/test/java/**/integration/off/*TextSearch*Test.kt"
+      - "app/src/test/resources/**/off_nutella_like_text_search.json"
+      - "app/src/test/java/**/data/repository/*FoodRepository*Test.kt"
+    acceptance_checks:
+      - "cmd: ./gradlew --no-daemon test --tests '*TextSearch*OFF*'"
+      - "cmd: ./gradlew --no-daemon test --tests '*FoodRepository*'"
+      - "manual: verificare che il test dimostri cache miss -> chiamata OFF -> mapping nutrienti (kcal/carb/fat/protein) consistente"
+      - "manual: verificare che source provenance rispetti Override > Cache > OFF senza regressioni"
+    risk_flags:
+      - "breaking-change"
+    done_when:
+      - "Nuovo test di integrazione stabile e ripetibile per AC-003"
+      - "Payload Nutella-like realistico versionato nei test"
+      - "Nessuna regressione sui test OFF esistenti"
+
+  - id: T-015
+    status: completed
+    type: feat
+    title: "Implement camera barcode scan flow with permission/manual fallback + theme preference in settings"
+    depends_on:
+      - "T-004"
+      - "T-014"
+    goal: "Completare il flusso scansione barcode da camera con gestione permesso runtime, integrazione scanner UI, popolamento barcode nel flusso meal logging e lookup cache-first/OFF, mantenendo fallback manuale codice."
+    non_goals:
+      - "Non introdurre provider fitness o funzionalita Garmin"
+      - "Non rifare il design completo delle schermate meal"
+      - "Non rimuovere fallback manuale barcode"
+    context_files:
+      - ".agents-work/2026-03-28-macro-app-spec/spec.md"
+      - ".agents-work/2026-03-28-macro-app-spec/architecture.md"
+      - ".agents-work/2026-03-28-macro-app-spec/acceptance.json"
+      - ".agents-work/2026-03-28-macro-app-spec/tasks.yaml"
+    files_expected:
+      - "app/src/main/java/**/ui/barcode/*.kt"
+      - "app/src/main/java/**/ui/search/*.kt"
+      - "app/src/main/java/**/ui/settings/*.kt"
+      - "app/src/main/java/**/data/repository/*UserSettings*Repository.kt"
+      - "app/src/main/java/**/MainActivity.kt"
+      - "app/src/main/AndroidManifest.xml"
+      - "app/src/androidTest/java/**/barcode/*Barcode*Test.kt"
+      - "README.md"
+    acceptance_checks:
+      - "cmd: ./gradlew --no-daemon assembleDebug"
+      - "cmd: ./gradlew --no-daemon connectedAndroidTest"
+      - "cmd: adb install -r app/build/outputs/apk/debug/app-debug.apk"
+      - "cmd: adb shell am start -n com.myfitnessmeals/.MainActivity"
+      - "manual: concedere permesso camera e verificare apertura scanner con lettura barcode valida"
+      - "manual: negare permesso camera e verificare fallback manuale codice senza blocco"
+      - "manual: verificare populate barcode -> lookup cache-first/OFF -> dettaglio alimento"
+      - "manual: verificare scenario barcode non trovato con input manuale e messaggio non bloccante"
+      - "manual: da Settings verificare selezione e persistenza tema System/Light/Dark"
+      - "manual: emulator setup quickcheck: emulator -list-avds, emulator -avd <NOME_AVD>, adb devices"
+    risk_flags:
+      - "security"
+      - "breaking-change"
+      - "perf"
+    done_when:
+      - "AC-004 coperto end-to-end (successo/non trovato/fallback manuale)"
+      - "Permesso camera gestito correttamente in tutti i path principali"
+      - "Settings espone scelta tema System/Light/Dark con persistenza locale e applicazione in runtime"
+      - "README aggiornato con passi minimi emulator/APK validation"

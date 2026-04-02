@@ -32,11 +32,36 @@
     "T-004 implementa UI Compose meal/search/barcode con preview porzione realtime, validazione quantita > 0 in UI+domain, salvataggio/cancellazione voce pasto e smoke androidTest del flusso",
     "T-004 fix-review: preview job serializzato/cancellato in ViewModel per prevenire stale preview race mantenendo API e UX correnti",
     "T-004 fix-review: copertura test rafforzata su AC-002 (4 meal type) e AC-017 (delete con ricalcolo aggregati) via unit test + androidTest",
-    "T-004 second blocker fix: rimosso seeding runtime dal percorso production (ViewModel non invoca piu ensureSeedFoods), con isolamento/seed esplicito in androidTest"
-    ,"T-003A hardening migration v1->v2 applica dedup e selezione latest-override con tabelle temporanee set-based (niente subquery correlate costose), mantenendo policy keep-latest"
+    "T-004 second blocker fix: rimosso seeding runtime dal percorso production (ViewModel non invoca piu ensureSeedFoods), con isolamento/seed esplicito in androidTest",
+    "T-003A hardening migration v1->v2 applica dedup e selezione latest-override con tabelle temporanee set-based (niente subquery correlate costose), mantenendo policy keep-latest",
+    "T-005 increment: SaveNutritionOverrideUseCase con validazioni (>=0, almeno un nutriente) e UI meal per inserimento override (kcal/carb/fat/protein + nota)",
+    "T-005 increment: dettaglio tecnico provenance esplicito (base source -> effective source + timestamp override), clear override e smoke test override/cache stabile su emulatore",
+    "T-005 increment: introdotti OverrideRepository (interfaccia), NutrientResolverService (policy Override>Cache>OFF estratta dal use case) e componente UI dedicato ui/fooddetail/FoodDetailCard",
+    "T-005 completed con gate test verdi: ./gradlew test e ./gradlew connectedAndroidTest su emulatore mfm_api35",
+    "T-006 implemented: onboarding persistente con GoalComputationService (Mifflin+activity+goal delta), settings persistenti e blocco salvataggio macro quando somma != 100",
+    "T-007 implemented: dashboard con card calorie/macro (grammi+percentuali), widget principali (passi/peso/kcal esercizio/minuti) e storico navigabile ultimi 90 giorni con smoke test connectedAndroidTest",
+    "T-007 completed: gate QA rieseguiti con esito green (./gradlew --no-daemon test, ./gradlew --no-daemon connectedAndroidTest)",
+    "T-007 FIX_REVIEW: rimosso artifact NUL, parser enum SharedPreferences reso tollerante a valori invalidi/case mismatch, refresh dashboard/history con handling difensivo Exception (senza ingoiare cancellation), smoke test rafforzato con seed non-default e assert valori",
+    "T-014 usa payload Nutella-like stabile in OffHttpCatalogClientTest per validare mapping text-search di kcal/carb/fat/protein senza toccare codice production",
+    "T-014 follow-up reviewer: fix limitato a formattazione/indentazione test OFF text-search, senza cambi semantici",
+    "T-014 minimal cleanup su working tree sporco approvato (UD-10): nessuna trailing whitespace residua in OffHttpCatalogClientTest; acceptance test scoped verde",
+    "T-014 completed: test mirato OFF text-search Nutella-like verde e regressione FoodRepository verde su :app:testDebugUnitTest",
+    "T-015 implemented: scanner camera in meal logging con runtime permission handling, fallback manuale non bloccante su diniego, e auto-lookup barcode dopo scansione valida",
+    "T-015 blocker-fix: copertura comportamentale scanner consolidata con androidTest su permission fallback, click scan/lookup e rendering error path (barcode non trovato / scanner failure) per ridurre flaky unit test su ViewModel",
+    "T-015 follow-up fix: BarcodeCameraScannerDialog ora intercetta anche failure di camera provider acquisition (providerFuture.get) e setup bind, instradando sempre l'errore su fallback non bloccante",
+    "T-015 QA parziale: assembleDebug e connectedAndroidTest verdi; APK install ok su emulatore e avvio riuscito con package com.myfitnessmeals.app",
+    "T-015 incremento requisito: aggiunta opzione tema System/Light/Dark in Settings con persistenza in UserSettingsRepository e applicazione runtime in MainActivity",
+    "T-015 completed: aggiunto smoke test settings tema con persistenza dopo recreate activity; gate test e connectedAndroidTest verdi",
+    "T-008 implemented: introdotti GarminIntegrationService + GarminSyncWorker (app-open), secure token store cifrato, e controlli Settings per connect/disconnect/sync con stato provider",
+    "T-008 gate evidence: ./gradlew --no-daemon test e ./gradlew --no-daemon connectedAndroidTest verdi (12 instrumented test)",
+    "T-008 tests: aggiunti GarminIntegrationServiceTest (unit) e GarminSettingsFlowSmokeTest (androidTest)",
+    "T-009 implemented: Search OFF error mapping uniformata (timeout/rate limit/unavailable/malformed) con messaggi user-friendly",
+    "T-009 implemented: retry esplicito non bloccante aggiunto in MealLoggingScreen con azione Retry su errori retryable",
+    "T-009 gate evidence: ./gradlew --no-daemon test e ./gradlew --no-daemon connectedAndroidTest verdi (13 instrumented test)"
   ],
   "known_issues": [
-    "Warning non bloccante AGP: compileSdk=35 oltre il livello ufficialmente testato da plugin; valutare android.suppressUnsupportedCompileSdk=35 se il warning disturba la CI"
+    "Warning non bloccante AGP: compileSdk=35 oltre il livello ufficialmente testato da plugin; valutare android.suppressUnsupportedCompileSdk=35 se il warning disturba la CI",
+    "Device fisico ancora unauthorized; gate connectedAndroidTest attualmente coperto tramite emulatore locale mfm_api35"
   ],
   "user_decisions": [
     {
@@ -128,6 +153,46 @@
       "resolved_at": "2026-03-30T15:30:00Z",
       "state_context": "ASK_USER",
       "resolution_reason": null
+    },
+    {
+      "decision_id": "UD-8",
+      "question": "Reviewer T-014 PASS WITH NOTES: applicare fix minore formattazione test?",
+      "status": "answered",
+      "answer": "fix-now",
+      "asked_at": "2026-04-01T23:15:00Z",
+      "resolved_at": "2026-04-01T23:16:00Z",
+      "state_context": "ASK_USER",
+      "resolution_reason": null
+    },
+    {
+      "decision_id": "UD-9",
+      "question": "Reviewer T-014 second PASS WITH NOTES: applicare ora pulizia artifact scope + trailing spaces?",
+      "status": "answered",
+      "answer": "fix-now",
+      "asked_at": "2026-04-01T23:18:00Z",
+      "resolved_at": "2026-04-01T23:18:30Z",
+      "state_context": "ASK_USER",
+      "resolution_reason": null
+    },
+    {
+      "decision_id": "UD-10",
+      "question": "Confermi proseguimento sul working tree sporco senza revert?",
+      "status": "answered",
+      "answer": "continue-with-current-working-tree",
+      "asked_at": "2026-04-01T23:32:00Z",
+      "resolved_at": "2026-04-01T23:32:30Z",
+      "state_context": "ASK_USER",
+      "resolution_reason": null
+    },
+    {
+      "decision_id": "UD-11",
+      "question": "Applico ora nota minore README quickcheck emulatore/APK?",
+      "status": "answered",
+      "answer": "defer-minor-readme-note",
+      "asked_at": "2026-04-01T23:40:00Z",
+      "resolved_at": "2026-04-01T23:40:30Z",
+      "state_context": "ASK_USER",
+      "resolution_reason": null
     }
   ],
   "gate_tracking": {
@@ -142,11 +207,11 @@
   },
   "runtime_flags": {
     "copilot_instructions_exists": false,
-    "copilot_checked_at": "2026-03-28T22:45:16Z",
+    "copilot_checked_at": "2026-04-01T22:15:00Z",
     "session_paused": false,
     "pause_reason": null,
-    "resume_from_task_id": "T-004",
-    "next_task_candidate": "T-004"
+    "resume_from_task_id": "T-009",
+    "next_task_candidate": "T-009"
   },
   "retry_counts": {
     "T-001": {
@@ -166,8 +231,14 @@
       "FIX_TESTS": 0,
       "FIX_SECURITY": 0,
       "FIX_BUILD": 0
+    },
+    "T-007": {
+      "FIX_REVIEW": 1,
+      "FIX_TESTS": 0,
+      "FIX_SECURITY": 0,
+      "FIX_BUILD": 0
     }
   },
   "last_ci_result": "green",
-  "last_update": "2026-03-30T16:38:00Z"
+  "last_update": "2026-04-02T03:55:00Z"
 }

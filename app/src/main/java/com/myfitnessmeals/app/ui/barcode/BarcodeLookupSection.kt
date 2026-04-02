@@ -17,14 +17,24 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun BarcodeLookupSection(
     barcode: String,
+    showCameraPermissionFallback: Boolean,
     onBarcodeChanged: (String) -> Unit,
     onLookupClicked: () -> Unit,
+    onScanClicked: () -> Unit,
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(text = "Search by barcode", style = MaterialTheme.typography.titleMedium)
+        if (showCameraPermissionFallback) {
+            Text(
+                text = "Camera permission denied. You can still type the barcode manually.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.testTag("meal_barcode_permission_fallback"),
+            )
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedTextField(
                 value = barcode,
@@ -42,6 +52,14 @@ fun BarcodeLookupSection(
                     .testTag("meal_barcode_button"),
             ) {
                 Text("Lookup")
+            }
+            Button(
+                onClick = onScanClicked,
+                modifier = Modifier
+                    .padding(top = 4.dp)
+                    .testTag("meal_barcode_scan_button"),
+            ) {
+                Text("Scan")
             }
         }
     }

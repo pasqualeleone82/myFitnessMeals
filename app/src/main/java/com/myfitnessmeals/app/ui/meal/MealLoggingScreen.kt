@@ -1,5 +1,9 @@
 package com.myfitnessmeals.app.ui.meal
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -20,31 +24,85 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.myfitnessmeals.app.domain.model.MealType
+import com.myfitnessmeals.app.domain.model.ResolvedSource
+import com.myfitnessmeals.app.ui.fooddetail.FoodDetailCard
+import com.myfitnessmeals.app.ui.barcode.BarcodeCameraScannerDialog
 import com.myfitnessmeals.app.ui.barcode.BarcodeLookupSection
 import com.myfitnessmeals.app.ui.search.FoodSearchSection
 
 @Composable
 fun MealLoggingRoute(viewModel: MealLoggingViewModel = viewModel()) {
     val state by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+    var showScanner by remember { mutableStateOf(false) }
+    var showPermissionFallback by remember { mutableStateOf(false) }
+
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        showScanner = granted
+        showPermissionFallback = !granted
+    }
 
     MealLoggingScreen(
         state = state,
         onSearchQueryChanged = viewModel::onSearchQueryChanged,
         onSearchClicked = viewModel::searchByText,
+        showCameraPermissionFallback = showPermissionFallback,
         onBarcodeChanged = viewModel::onBarcodeChanged,
         onBarcodeLookupClicked = viewModel::searchByBarcode,
+        onBarcodeScanClicked = {
+            val hasPermission = ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.CAMERA,
+            ) == PackageManager.PERMISSION_GRANTED
+
+            if (hasPermission) {
+                showPermissionFallback = false
+                showScanner = true
+            } else {
+                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+            }
+        },
         onMealTypeSelected = viewModel::onMealTypeSelected,
         onFoodSelected = viewModel::onFoodSelected,
         onQuantityChanged = viewModel::onQuantityChanged,
         onUnitChanged = viewModel::onUnitChanged,
+        onOverrideKcalChanged = viewModel::onOverrideKcalChanged,
+        onOverrideCarbChanged = viewModel::onOverrideCarbChanged,
+        onOverrideFatChanged = viewModel::onOverrideFatChanged,
+        onOverrideProteinChanged = viewModel::onOverrideProteinChanged,
+        onOverrideNoteChanged = viewModel::onOverrideNoteChanged,
+        onOverrideSaveClicked = viewModel::saveOverride,
+        onOverrideClearClicked = viewModel::clearOverride,
         onSaveClicked = viewModel::saveSelectedFood,
+        onRetryClicked = viewModel::retryLastSearch,
         onDeleteEntry = viewModel::deleteEntry,
     )
+
+    if (showScanner) {
+        BarcodeCameraScannerDialog(
+            onDismissRequest = { showScanner = false },
+            onBarcodeScanned = { scannedBarcode ->
+                showScanner = false
+                viewModel.onBarcodeScanned(scannedBarcode)
+            },
+            onScannerError = { message ->
+                showScanner = false
+                viewModel.onBarcodeScanError(message)
+            },
+        )
+    }
 }
 
 @Composable
@@ -52,13 +110,23 @@ fun MealLoggingScreen(
     state: MealLoggingUiState,
     onSearchQueryChanged: (String) -> Unit,
     onSearchClicked: () -> Unit,
+    showCameraPermissionFallback: Boolean,
     onBarcodeChanged: (String) -> Unit,
     onBarcodeLookupClicked: () -> Unit,
+    onBarcodeScanClicked: () -> Unit,
     onMealTypeSelected: (MealType) -> Unit,
     onFoodSelected: (com.myfitnessmeals.app.domain.usecase.MealFoodCandidate) -> Unit,
     onQuantityChanged: (String) -> Unit,
     onUnitChanged: (String) -> Unit,
+    onOverrideKcalChanged: (String) -> Unit,
+    onOverrideCarbChanged: (String) -> Unit,
+    onOverrideFatChanged: (String) -> Unit,
+    onOverrideProteinChanged: (String) -> Unit,
+    onOverrideNoteChanged: (String) -> Unit,
+    onOverrideSaveClicked: () -> Unit,
+    onOverrideClearClicked: () -> Unit,
     onSaveClicked: () -> Unit,
+    onRetryClicked: () -> Unit,
     onDeleteEntry: (Long) -> Unit,
 ) {
     Surface(modifier = Modifier.fillMaxSize()) {
@@ -91,18 +159,30 @@ fun MealLoggingScreen(
             item {
                 BarcodeLookupSection(
                     barcode = state.barcodeQuery,
+                    showCameraPermissionFallback = showCameraPermissionFallback,
                     onBarcodeChanged = onBarcodeChanged,
                     onLookupClicked = onBarcodeLookupClicked,
+                    onScanClicked = onBarcodeScanClicked,
                 )
             }
 
             if (state.errorMessage != null) {
                 item {
-                    Text(
-                        text = state.errorMessage,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.testTag("meal_error"),
-                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = state.errorMessage,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.testTag("meal_error"),
+                        )
+                        if (state.showRetryAction) {
+                            Button(
+                                onClick = onRetryClicked,
+                                modifier = Modifier.testTag("meal_error_retry"),
+                            ) {
+                                Text("Retry")
+                            }
+                        }
+                    }
                 }
             }
 
@@ -140,6 +220,19 @@ fun MealLoggingScreen(
             }
 
             item {
+                NutritionOverrideSection(
+                    state = state,
+                    onKcalChanged = onOverrideKcalChanged,
+                    onCarbChanged = onOverrideCarbChanged,
+                    onFatChanged = onOverrideFatChanged,
+                    onProteinChanged = onOverrideProteinChanged,
+                    onNoteChanged = onOverrideNoteChanged,
+                    onSaveClicked = onOverrideSaveClicked,
+                    onClearClicked = onOverrideClearClicked,
+                )
+            }
+
+            item {
                 DailyTotalsCard(
                     kcal = state.kcalIntake,
                     carb = state.carbTotal,
@@ -173,6 +266,92 @@ fun MealLoggingScreen(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun NutritionOverrideSection(
+    state: MealLoggingUiState,
+    onKcalChanged: (String) -> Unit,
+    onCarbChanged: (String) -> Unit,
+    onFatChanged: (String) -> Unit,
+    onProteinChanged: (String) -> Unit,
+    onNoteChanged: (String) -> Unit,
+    onSaveClicked: () -> Unit,
+    onClearClicked: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(text = "Nutrition override", style = MaterialTheme.typography.titleMedium)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            OutlinedTextField(
+                value = state.overrideKcalInput,
+                onValueChange = onKcalChanged,
+                label = { Text("kcal/100") },
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag("override_kcal_input"),
+                singleLine = true,
+            )
+            OutlinedTextField(
+                value = state.overrideCarbInput,
+                onValueChange = onCarbChanged,
+                label = { Text("carb/100") },
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag("override_carb_input"),
+                singleLine = true,
+            )
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            OutlinedTextField(
+                value = state.overrideFatInput,
+                onValueChange = onFatChanged,
+                label = { Text("fat/100") },
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag("override_fat_input"),
+                singleLine = true,
+            )
+            OutlinedTextField(
+                value = state.overrideProteinInput,
+                onValueChange = onProteinChanged,
+                label = { Text("protein/100") },
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag("override_protein_input"),
+                singleLine = true,
+            )
+        }
+
+        OutlinedTextField(
+            value = state.overrideNoteInput,
+            onValueChange = onNoteChanged,
+            label = { Text("Note") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("override_note_input"),
+            singleLine = true,
+        )
+
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            Button(
+                onClick = onSaveClicked,
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag("override_save_button"),
+            ) {
+                Text("Save override")
+            }
+            Button(
+                onClick = onClearClicked,
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag("override_clear_button"),
+            ) {
+                Text("Clear override")
             }
         }
     }
@@ -229,11 +408,21 @@ private fun PortionDetailSection(
         }
 
         state.preview?.let { preview ->
-            Text("Resolved source: ${preview.resolvedSource}", style = MaterialTheme.typography.bodySmall)
-            Text("Calories: ${preview.kcalTotal.format1()}${if (preview.kcalMissing) " (N/D)" else ""}")
-            Text("Carbs: ${preview.carbTotal.format1()}${if (preview.carbMissing) " (N/D)" else ""}")
-            Text("Fat: ${preview.fatTotal.format1()}${if (preview.fatMissing) " (N/D)" else ""}")
-            Text("Protein: ${preview.proteinTotal.format1()}${if (preview.proteinMissing) " (N/D)" else ""}")
+            val baseSource = state.selectedFood?.source ?: ResolvedSource.CACHE
+            FoodDetailCard(
+                foodName = state.selectedFood?.name ?: "Unknown food",
+                baseSource = baseSource,
+                effectiveSource = preview.resolvedSource,
+                overrideUpdatedAtEpochMs = state.overrideUpdatedAtEpochMs,
+                kcalTotal = preview.kcalTotal,
+                carbTotal = preview.carbTotal,
+                fatTotal = preview.fatTotal,
+                proteinTotal = preview.proteinTotal,
+                kcalMissing = preview.kcalMissing,
+                carbMissing = preview.carbMissing,
+                fatMissing = preview.fatMissing,
+                proteinMissing = preview.proteinMissing,
+            )
         }
 
         Button(

@@ -4,9 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.myfitnessmeals.app.AppGraph
+import com.myfitnessmeals.app.data.repository.LocalOverrideRepository
 import com.myfitnessmeals.app.domain.model.MealType
 import com.myfitnessmeals.app.domain.usecase.BuildMealPreviewUseCase
 import com.myfitnessmeals.app.domain.usecase.DeleteMealEntryUseCase
+import com.myfitnessmeals.app.domain.usecase.DeleteNutritionOverrideUseCase
 import com.myfitnessmeals.app.domain.usecase.GetMealDaySnapshotUseCase
 import com.myfitnessmeals.app.domain.usecase.MealFoodCandidate
 import com.myfitnessmeals.app.domain.usecase.MealLoggedEntry
@@ -14,6 +16,8 @@ import com.myfitnessmeals.app.domain.usecase.MealPreview
 import com.myfitnessmeals.app.domain.usecase.MealSearchResult
 import com.myfitnessmeals.app.domain.usecase.SaveMealEntryCommand
 import com.myfitnessmeals.app.domain.usecase.SaveMealEntryUseCase
+import com.myfitnessmeals.app.domain.usecase.SaveNutritionOverrideCommand
+import com.myfitnessmeals.app.domain.usecase.SaveNutritionOverrideUseCase
 import com.myfitnessmeals.app.domain.usecase.SearchFoodByBarcodeUseCase
 import com.myfitnessmeals.app.domain.usecase.SearchFoodsByTextUseCase
 import kotlinx.coroutines.CancellationException
@@ -32,6 +36,12 @@ data class MealLoggingUiState(
     val selectedFood: MealFoodCandidate? = null,
     val quantityInput: String = "100",
     val unitInput: String = "g",
+    val overrideKcalInput: String = "",
+    val overrideCarbInput: String = "",
+    val overrideFatInput: String = "",
+    val overrideProteinInput: String = "",
+    val overrideNoteInput: String = "",
+    val overrideUpdatedAtEpochMs: Long? = null,
     val preview: MealPreview? = null,
     val entries: List<MealLoggedEntry> = emptyList(),
     val kcalIntake: Double = 0.0,
@@ -39,13 +49,22 @@ data class MealLoggingUiState(
     val fatTotal: Double = 0.0,
     val proteinTotal: Double = 0.0,
     val errorMessage: String? = null,
+    val showRetryAction: Boolean = false,
 )
+
+private enum class SearchOrigin {
+    TEXT,
+    BARCODE,
+}
 
 class MealLoggingViewModel(
     private val searchFoodsByTextUseCase: SearchFoodsByTextUseCase,
     private val searchFoodByBarcodeUseCase: SearchFoodByBarcodeUseCase,
     private val buildMealPreviewUseCase: BuildMealPreviewUseCase,
     private val saveMealEntryUseCase: SaveMealEntryUseCase,
+    private val saveNutritionOverrideUseCase: SaveNutritionOverrideUseCase,
+    private val deleteNutritionOverrideUseCase: DeleteNutritionOverrideUseCase,
+    private val overrideRepository: LocalOverrideRepository,
     private val deleteMealEntryUseCase: DeleteMealEntryUseCase,
     private val getMealDaySnapshotUseCase: GetMealDaySnapshotUseCase,
 ) : ViewModel() {
@@ -55,6 +74,7 @@ class MealLoggingViewModel(
     private var searchRequestVersion: Long = 0
     private var previewJob: Job? = null
     private var previewRequestVersion: Long = 0
+    private var lastSearchOrigin: SearchOrigin? = null
 
     init {
         viewModelScope.launch {
@@ -68,6 +88,26 @@ class MealLoggingViewModel(
 
     fun onBarcodeChanged(value: String) {
         _uiState.update { it.copy(barcodeQuery = value) }
+    }
+
+    fun onBarcodeScanned(value: String) {
+        val barcode = value.trim()
+        if (barcode.isBlank()) {
+            _uiState.update { it.copy(errorMessage = "Unable to read barcode") }
+            return
+        }
+
+        _uiState.update {
+            it.copy(
+                barcodeQuery = barcode,
+                errorMessage = null,
+            )
+        }
+        searchByBarcode()
+    }
+
+    fun onBarcodeScanError(message: String) {
+        _uiState.update { it.copy(errorMessage = message) }
     }
 
     fun onMealTypeSelected(mealType: MealType) {
@@ -85,6 +125,7 @@ class MealLoggingViewModel(
     }
 
     fun searchByText() {
+        lastSearchOrigin = SearchOrigin.TEXT
         val query = _uiState.value.searchQuery
         executeSearch(notFoundMessage = "No food found") {
             searchFoodsByTextUseCase(query)
@@ -92,15 +133,54 @@ class MealLoggingViewModel(
     }
 
     fun searchByBarcode() {
+        lastSearchOrigin = SearchOrigin.BARCODE
         val barcode = _uiState.value.barcodeQuery
         executeSearch(notFoundMessage = "Barcode not found") {
             searchFoodByBarcodeUseCase(barcode)
         }
     }
 
+    fun retryLastSearch() {
+        when (lastSearchOrigin) {
+            SearchOrigin.TEXT -> searchByText()
+            SearchOrigin.BARCODE -> searchByBarcode()
+            null -> Unit
+        }
+    }
+
     fun onFoodSelected(food: MealFoodCandidate) {
-        _uiState.update { it.copy(selectedFood = food, errorMessage = null) }
-        recalculatePreview()
+        _uiState.update {
+            it.copy(
+                selectedFood = food,
+                errorMessage = null,
+                    showRetryAction = false,
+                overrideKcalInput = "",
+                overrideCarbInput = "",
+                overrideFatInput = "",
+                overrideProteinInput = "",
+                overrideNoteInput = "",
+                overrideUpdatedAtEpochMs = null,
+            )
+        }
+        viewModelScope.launch {
+            val existing = overrideRepository.getOverrideByFoodId(food.id)
+            if (_uiState.value.selectedFood?.id != food.id) {
+                return@launch
+            }
+            if (existing != null) {
+                _uiState.update {
+                    it.copy(
+                        overrideKcalInput = existing.kcal100?.formatOverrideInput().orEmpty(),
+                        overrideCarbInput = existing.carb100?.formatOverrideInput().orEmpty(),
+                        overrideFatInput = existing.fat100?.formatOverrideInput().orEmpty(),
+                        overrideProteinInput = existing.protein100?.formatOverrideInput().orEmpty(),
+                        overrideNoteInput = existing.note.orEmpty(),
+                        overrideUpdatedAtEpochMs = existing.updatedAt,
+                    )
+                }
+            }
+            recalculatePreview()
+        }
     }
 
     fun saveSelectedFood() {
@@ -129,6 +209,103 @@ class MealLoggingViewModel(
                 refreshDay()
             } catch (error: IllegalArgumentException) {
                 _uiState.update { it.copy(errorMessage = error.message ?: "Invalid meal data") }
+            }
+        }
+    }
+
+    fun onOverrideKcalChanged(value: String) {
+        _uiState.update { it.copy(overrideKcalInput = value) }
+    }
+
+    fun onOverrideCarbChanged(value: String) {
+        _uiState.update { it.copy(overrideCarbInput = value) }
+    }
+
+    fun onOverrideFatChanged(value: String) {
+        _uiState.update { it.copy(overrideFatInput = value) }
+    }
+
+    fun onOverrideProteinChanged(value: String) {
+        _uiState.update { it.copy(overrideProteinInput = value) }
+    }
+
+    fun onOverrideNoteChanged(value: String) {
+        _uiState.update { it.copy(overrideNoteInput = value) }
+    }
+
+    fun saveOverride() {
+        val state = _uiState.value
+        val selectedFood = state.selectedFood ?: run {
+            _uiState.update { it.copy(errorMessage = "Select a food first") }
+            return
+        }
+
+        val kcalParsed = parseNullableNumber(state.overrideKcalInput, "kcal")
+        if (!kcalParsed.isValid) return
+        val carbParsed = parseNullableNumber(state.overrideCarbInput, "carb")
+        if (!carbParsed.isValid) return
+        val fatParsed = parseNullableNumber(state.overrideFatInput, "fat")
+        if (!fatParsed.isValid) return
+        val proteinParsed = parseNullableNumber(state.overrideProteinInput, "protein")
+        if (!proteinParsed.isValid) return
+
+        val kcal = kcalParsed.value
+        val carb = carbParsed.value
+        val fat = fatParsed.value
+        val protein = proteinParsed.value
+
+        if (listOf(kcal, carb, fat, protein).all { it == null }) {
+            _uiState.update { it.copy(errorMessage = "Set at least one nutrient override") }
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                saveNutritionOverrideUseCase(
+                    SaveNutritionOverrideCommand(
+                        foodId = selectedFood.id,
+                        kcal100 = kcal,
+                        carb100 = carb,
+                        fat100 = fat,
+                        protein100 = protein,
+                        note = state.overrideNoteInput,
+                    )
+                )
+                val persisted = overrideRepository.getOverrideByFoodId(selectedFood.id)
+                _uiState.update { it.copy(errorMessage = null) }
+                if (persisted != null) {
+                    _uiState.update { it.copy(overrideUpdatedAtEpochMs = persisted.updatedAt) }
+                }
+                recalculatePreview()
+            } catch (error: IllegalArgumentException) {
+                _uiState.update { it.copy(errorMessage = error.message ?: "Invalid override") }
+            }
+        }
+    }
+
+    fun clearOverride() {
+        val selectedFoodId = _uiState.value.selectedFood?.id ?: run {
+            _uiState.update { it.copy(errorMessage = "Select a food first") }
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                deleteNutritionOverrideUseCase(selectedFoodId)
+                _uiState.update {
+                    it.copy(
+                        overrideKcalInput = "",
+                        overrideCarbInput = "",
+                        overrideFatInput = "",
+                        overrideProteinInput = "",
+                        overrideNoteInput = "",
+                        overrideUpdatedAtEpochMs = null,
+                        errorMessage = null,
+                    )
+                }
+                recalculatePreview()
+            } catch (error: IllegalArgumentException) {
+                _uiState.update { it.copy(errorMessage = error.message ?: "Invalid override request") }
             }
         }
     }
@@ -220,6 +397,7 @@ class MealLoggingViewModel(
                     it.copy(
                         searchResults = result.items,
                         errorMessage = null,
+                        showRetryAction = false,
                     )
                 }
             }
@@ -228,6 +406,7 @@ class MealLoggingViewModel(
                     it.copy(
                         searchResults = emptyList(),
                         errorMessage = notFoundMessage,
+                        showRetryAction = false,
                     )
                 }
             }
@@ -236,6 +415,7 @@ class MealLoggingViewModel(
                     it.copy(
                         searchResults = emptyList(),
                         errorMessage = result.message,
+                        showRetryAction = result.retryable,
                     )
                 }
             }
@@ -255,6 +435,37 @@ class MealLoggingViewModel(
         }
     }
 
+    private fun parseNullableNumber(raw: String, label: String): ParsedNumber {
+        val trimmed = raw.trim()
+        if (trimmed.isEmpty()) {
+            return ParsedNumber(isValid = true, value = null)
+        }
+        val parsed = trimmed.toDoubleOrNull()
+        if (parsed == null) {
+            _uiState.update { it.copy(errorMessage = "Invalid $label value") }
+            return ParsedNumber(isValid = false, value = null)
+        }
+        if (parsed < 0.0) {
+            _uiState.update { it.copy(errorMessage = "$label must be >= 0") }
+            return ParsedNumber(isValid = false, value = null)
+        }
+        return ParsedNumber(isValid = true, value = parsed)
+    }
+
+    private data class ParsedNumber(
+        val isValid: Boolean,
+        val value: Double?,
+    )
+
+    private fun Double.formatOverrideInput(): String {
+        val longValue = toLong()
+        return if (this == longValue.toDouble()) {
+            longValue.toString()
+        } else {
+            toString()
+        }
+    }
+
     companion object {
         fun factory(appGraph: AppGraph): ViewModelProvider.Factory {
             return object : ViewModelProvider.Factory {
@@ -265,6 +476,9 @@ class MealLoggingViewModel(
                         searchFoodByBarcodeUseCase = appGraph.searchFoodByBarcodeUseCase,
                         buildMealPreviewUseCase = appGraph.buildMealPreviewUseCase,
                         saveMealEntryUseCase = appGraph.saveMealEntryUseCase,
+                        saveNutritionOverrideUseCase = appGraph.saveNutritionOverrideUseCase,
+                        deleteNutritionOverrideUseCase = appGraph.deleteNutritionOverrideUseCase,
+                        overrideRepository = appGraph.overrideRepository,
                         deleteMealEntryUseCase = appGraph.deleteMealEntryUseCase,
                         getMealDaySnapshotUseCase = appGraph.getMealDaySnapshotUseCase,
                     ) as T

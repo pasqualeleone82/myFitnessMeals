@@ -12,4 +12,17 @@ interface DailySummaryDao {
 
     @Query("SELECT * FROM daily_summary WHERE local_date = :localDate")
     suspend fun getByDate(localDate: String): DailySummaryEntity?
+
+    @Query(
+        """
+        SELECT *
+        FROM daily_summary
+        WHERE local_date BETWEEN :startDateInclusive AND :endDateInclusive
+        ORDER BY local_date DESC
+        """
+    )
+    suspend fun getByDateRange(
+        startDateInclusive: String,
+        endDateInclusive: String,
+    ): List<DailySummaryEntity>
 }

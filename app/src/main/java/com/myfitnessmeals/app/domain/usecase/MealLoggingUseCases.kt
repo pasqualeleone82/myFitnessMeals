@@ -6,10 +6,12 @@ import com.myfitnessmeals.app.data.local.NutritionOverrideEntity
 import com.myfitnessmeals.app.data.repository.FoodLookupResult
 import com.myfitnessmeals.app.data.repository.LocalDiaryRepository
 import com.myfitnessmeals.app.data.repository.LocalFoodRepository
-import com.myfitnessmeals.app.data.repository.LocalOverrideRepository
+import com.myfitnessmeals.app.data.repository.OverrideRepository
 import com.myfitnessmeals.app.domain.model.MealType
 import com.myfitnessmeals.app.domain.model.NewMealEntry
 import com.myfitnessmeals.app.domain.model.ResolvedSource
+import com.myfitnessmeals.app.domain.service.NutrientResolverService
+import com.myfitnessmeals.app.integration.off.OffCatalogError
 import java.time.LocalDate
 import java.time.ZoneOffset
 
@@ -45,6 +47,15 @@ data class SaveMealEntryCommand(
     val unit: String,
 )
 
+data class SaveNutritionOverrideCommand(
+    val foodId: Long,
+    val kcal100: Double?,
+    val carb100: Double?,
+    val fat100: Double?,
+    val protein100: Double?,
+    val note: String?,
+)
+
 data class MealLoggedEntry(
     val id: Long,
     val mealType: MealType,
@@ -68,7 +79,11 @@ data class MealDaySnapshot(
 sealed class MealSearchResult {
     data class Success(val items: List<MealFoodCandidate>) : MealSearchResult()
     data object NotFound : MealSearchResult()
-    data class Error(val message: String) : MealSearchResult()
+    data class Error(
+        val message: String,
+        val retryable: Boolean,
+        val code: String,
+    ) : MealSearchResult()
 }
 
 class SearchFoodsByTextUseCase(
@@ -80,7 +95,7 @@ class SearchFoodsByTextUseCase(
                 result.data.map { it.toCandidate(result.source) }
             )
             is FoodLookupResult.NotFound -> MealSearchResult.NotFound
-            is FoodLookupResult.Error -> MealSearchResult.Error(result.error::class.simpleName ?: "Unknown")
+            is FoodLookupResult.Error -> result.error.toMealSearchError()
         }
     }
 }
@@ -94,13 +109,42 @@ class SearchFoodByBarcodeUseCase(
                 listOf(result.data.toCandidate(result.source))
             )
             is FoodLookupResult.NotFound -> MealSearchResult.NotFound
-            is FoodLookupResult.Error -> MealSearchResult.Error(result.error::class.simpleName ?: "Unknown")
+            is FoodLookupResult.Error -> result.error.toMealSearchError()
         }
     }
 }
 
+private fun OffCatalogError.toMealSearchError(): MealSearchResult.Error {
+    return when (this) {
+        OffCatalogError.Timeout -> MealSearchResult.Error(
+            message = "Network timeout. Check connection and retry.",
+            retryable = true,
+            code = "OFF_TIMEOUT",
+        )
+
+        OffCatalogError.RateLimit -> MealSearchResult.Error(
+            message = "Open Food Facts is rate limited. Retry in a moment.",
+            retryable = true,
+            code = "OFF_RATE_LIMIT",
+        )
+
+        OffCatalogError.Unavailable -> MealSearchResult.Error(
+            message = "Service unavailable. You can keep using cached foods and retry.",
+            retryable = true,
+            code = "OFF_UNAVAILABLE",
+        )
+
+        OffCatalogError.MalformedPayload -> MealSearchResult.Error(
+            message = "Unexpected provider response. Please retry.",
+            retryable = true,
+            code = "OFF_MALFORMED_PAYLOAD",
+        )
+    }
+}
+
 class BuildMealPreviewUseCase(
-    private val overrideRepository: LocalOverrideRepository,
+    private val overrideRepository: OverrideRepository,
+    private val nutrientResolverService: NutrientResolverService = NutrientResolverService(),
 ) {
     suspend operator fun invoke(
         food: MealFoodCandidate,
@@ -110,26 +154,21 @@ class BuildMealPreviewUseCase(
         require(quantity > 0) { "Meal quantity must be positive" }
 
         val override = overrideRepository.getOverrideByFoodId(food.id)
-        val resolvedSource = if (override != null) ResolvedSource.OVERRIDE else food.source
-
-        val kcal100 = override?.kcal100 ?: food.kcal100
-        val carb100 = override?.carb100 ?: food.carb100
-        val fat100 = override?.fat100 ?: food.fat100
-        val protein100 = override?.protein100 ?: food.protein100
+        val resolved = nutrientResolverService.resolve(food = food, override = override)
 
         val factor = quantityToFactor(quantity = quantity, unit = unit)
         return MealPreview(
             quantity = quantity,
             unit = unit,
-            kcalTotal = (kcal100 ?: 0.0) * factor,
-            carbTotal = (carb100 ?: 0.0) * factor,
-            fatTotal = (fat100 ?: 0.0) * factor,
-            proteinTotal = (protein100 ?: 0.0) * factor,
-            kcalMissing = kcal100 == null,
-            carbMissing = carb100 == null,
-            fatMissing = fat100 == null,
-            proteinMissing = protein100 == null,
-            resolvedSource = resolvedSource,
+            kcalTotal = (resolved.kcal100 ?: 0.0) * factor,
+            carbTotal = (resolved.carb100 ?: 0.0) * factor,
+            fatTotal = (resolved.fat100 ?: 0.0) * factor,
+            proteinTotal = (resolved.protein100 ?: 0.0) * factor,
+            kcalMissing = resolved.kcal100 == null,
+            carbMissing = resolved.carb100 == null,
+            fatMissing = resolved.fat100 == null,
+            proteinMissing = resolved.protein100 == null,
+            resolvedSource = resolved.source,
         )
     }
 
@@ -139,6 +178,45 @@ class BuildMealPreviewUseCase(
             "serving" -> quantity
             else -> quantity / 100.0
         }
+    }
+}
+
+class SaveNutritionOverrideUseCase(
+    private val overrideRepository: OverrideRepository,
+    private val nowEpochMillis: () -> Long = { System.currentTimeMillis() },
+) {
+    suspend operator fun invoke(command: SaveNutritionOverrideCommand) {
+        require(command.foodId > 0) { "Food id must be positive" }
+
+        val nutrients = listOf(command.kcal100, command.carb100, command.fat100, command.protein100)
+        require(nutrients.any { it != null }) { "At least one nutrient override is required" }
+        nutrients.filterNotNull().forEach { value ->
+            require(value >= 0.0) { "Nutrient override must be >= 0" }
+        }
+
+        val existing = overrideRepository.getOverrideByFoodId(command.foodId)
+        val now = nowEpochMillis()
+        overrideRepository.upsertOverride(
+            NutritionOverrideEntity(
+                foodId = command.foodId,
+                kcal100 = command.kcal100,
+                carb100 = command.carb100,
+                fat100 = command.fat100,
+                protein100 = command.protein100,
+                note = command.note?.trim()?.ifBlank { null },
+                createdAt = existing?.createdAt ?: now,
+                updatedAt = now,
+            )
+        )
+    }
+}
+
+class DeleteNutritionOverrideUseCase(
+    private val overrideRepository: OverrideRepository,
+) {
+    suspend operator fun invoke(foodId: Long): Boolean {
+        require(foodId > 0) { "Food id must be positive" }
+        return overrideRepository.deleteOverrideByFoodId(foodId) > 0
     }
 }
 

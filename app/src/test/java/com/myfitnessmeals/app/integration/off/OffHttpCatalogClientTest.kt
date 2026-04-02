@@ -132,6 +132,50 @@ class OffHttpCatalogClientTest {
     }
 
     @Test
+    fun searchByText_success_mapsNutellaLikePayloadNutrients() = runTest {
+        server.enqueue(
+            MockResponse()
+                .setResponseCode(200)
+                .setHeader("Content-Type", "application/json")
+                .setBody(
+                    """
+                {
+                    "products": [
+                        {
+                            "_id": "3017620422003",
+                            "code": "3017620422003",
+                            "product_name": "Nutella",
+                            "brands": "Ferrero",
+                            "nutriments": {
+                                "energy-kcal_100g": 539,
+                                "carbohydrates_100g": 56.3,
+                                "fat_100g": 30.9,
+                                "proteins_100g": 6.3
+                            }
+                        }
+                    ]
+                }
+                """.trimIndent(),
+                )
+        )
+
+        val client = OffHttpCatalogClient(baseUrl = baseUrl)
+        val result = client.searchByText("nutella", 10)
+
+        assertTrue(result is OffCatalogClientResult.Success)
+        val success = result as OffCatalogClientResult.Success
+        assertEquals(1, success.data.size)
+
+        val product = success.data.first()
+        assertEquals("Nutella", product.name)
+        assertEquals("Ferrero", product.brand)
+        assertEquals(539.0, product.nutrients.kcalPer100g ?: -1.0, 0.001)
+        assertEquals(56.3, product.nutrients.carbPer100g ?: -1.0, 0.001)
+        assertEquals(30.9, product.nutrients.fatPer100g ?: -1.0, 0.001)
+        assertEquals(6.3, product.nutrients.proteinPer100g ?: -1.0, 0.001)
+    }
+
+    @Test
     fun searchByBarcode_slowResponse_returnsTimeoutError() = runTest {
         server.enqueue(
             MockResponse()

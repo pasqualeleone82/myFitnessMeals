@@ -1,10 +1,10 @@
 package com.myfitnessmeals.app.meal
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.performTextClearance
@@ -76,6 +76,7 @@ class MealLoggingFlowSmokeTest {
 
     @Test
     fun mealFlow_searchAddAndDelete_smoke() {
+        completeOnboardingIfVisible()
         composeRule.onNodeWithTag("meal_screen").assertIsDisplayed()
 
         composeRule.onNodeWithTag("meal_search_input").performTextClearance()
@@ -109,6 +110,7 @@ class MealLoggingFlowSmokeTest {
 
     @Test
     fun mealFlow_canLogAtLeastOneEntryForEachMealType() {
+        completeOnboardingIfVisible()
         composeRule.onNodeWithTag("meal_screen").assertIsDisplayed()
 
         composeRule.onNodeWithTag("meal_search_input").performTextClearance()
@@ -141,6 +143,43 @@ class MealLoggingFlowSmokeTest {
         }
     }
 
+    @Test
+    fun mealFlow_overrideShowsProvenanceAndCanBeCleared() {
+        completeOnboardingIfVisible()
+        composeRule.onNodeWithTag("meal_screen").assertIsDisplayed()
+
+        composeRule.onNodeWithTag("meal_search_input").performTextClearance()
+        composeRule.onNodeWithTag("meal_search_input").performTextInput("seed-local Chicken")
+        composeRule.onNodeWithTag("meal_search_button").performClick()
+        composeRule.onNodeWithTag("meal_result_$seededChickenId").performClick()
+
+        repeat(2) {
+            composeRule.onNodeWithTag("meal_screen").performTouchInput { swipeUp() }
+        }
+
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            runCatching {
+                composeRule.onNodeWithTag("override_kcal_input").assertIsDisplayed()
+                composeRule.onNodeWithTag("override_save_button").assertIsDisplayed()
+                true
+            }.getOrDefault(false)
+        }
+
+        composeRule.onNodeWithTag("override_kcal_input").performTextClearance()
+        composeRule.onNodeWithTag("override_kcal_input").performTextInput("200")
+        composeRule.onNodeWithTag("override_save_button").performClick()
+
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            runCatching {
+                composeRule.onNodeWithTag("meal_override_updated_at").assertIsDisplayed()
+                true
+            }.getOrDefault(false)
+        }
+
+        composeRule.onNodeWithTag("override_clear_button").performClick()
+        composeRule.onNodeWithTag("meal_resolved_source").assertIsDisplayed()
+    }
+
     private fun mealEntryCount(): Long = runBlocking(Dispatchers.IO) {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val database = Room.databaseBuilder(context, AppDatabase::class.java, "myfitnessmeals.db")
@@ -158,4 +197,13 @@ class MealLoggingFlowSmokeTest {
         }
     }
 
+    private fun completeOnboardingIfVisible() {
+        if (composeRule.onAllNodesWithTag("onboarding_screen").fetchSemanticsNodes().isEmpty()) {
+            return
+        }
+        composeRule.onNodeWithTag("onboarding_complete_button").performClick()
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithTag("meal_screen").fetchSemanticsNodes().isNotEmpty()
+        }
+    }
 }
