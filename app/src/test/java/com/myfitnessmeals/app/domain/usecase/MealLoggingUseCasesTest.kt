@@ -10,6 +10,7 @@ import com.myfitnessmeals.app.data.repository.LocalFoodRepository
 import com.myfitnessmeals.app.data.repository.LocalOverrideRepository
 import com.myfitnessmeals.app.domain.model.MealType
 import com.myfitnessmeals.app.domain.model.ResolvedSource
+import com.myfitnessmeals.app.observability.ObservabilityTracker
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -127,9 +128,11 @@ class MealLoggingUseCasesTest {
             )
         )
 
+        val tracker = RecordingObservabilityTracker()
         val saveUseCase = SaveMealEntryUseCase(
             diaryRepository = diaryRepository,
             buildMealPreviewUseCase = BuildMealPreviewUseCase(overrideRepository),
+            observabilityTracker = tracker,
         )
 
         try {
@@ -153,7 +156,157 @@ class MealLoggingUseCasesTest {
             throw AssertionError("Expected IllegalArgumentException for non-positive quantity")
         } catch (error: IllegalArgumentException) {
             assertEquals("Meal quantity must be positive", error.message)
+            assertEquals(1, tracker.mealSaveEvents.size)
+            assertFalse(tracker.mealSaveEvents.first().success)
+            assertEquals("VALIDATION_FAILED", tracker.mealSaveEvents.first().errorCode)
         }
+    }
+
+    @Test
+    fun saveMealEntry_whenRuntimeExceptionOccurs_tracksFailureAndRethrows() = runTest {
+        val foodId = foodRepository.upsertFood(
+            FoodItemEntity(
+                sourceId = "local-2b",
+                source = "CACHE",
+                name = "Turkey",
+                brand = "Brand",
+                barcode = "1000000000202",
+                kcal100 = 140.0,
+                carb100 = 0.0,
+                fat100 = 2.0,
+                protein100 = 29.0,
+                lastSyncedAt = 1_700_000_000_000L,
+            )
+        )
+
+        val tracker = RecordingObservabilityTracker()
+        val saveUseCase = SaveMealEntryUseCase(
+            diaryRepository = diaryRepository,
+            buildMealPreviewUseCase = BuildMealPreviewUseCase(overrideRepository),
+            observabilityTracker = tracker,
+            nowOffsetProvider = { throw IllegalStateException("Clock runtime failure") },
+        )
+
+        try {
+            saveUseCase(
+                SaveMealEntryCommand(
+                    mealType = MealType.LUNCH,
+                    food = MealFoodCandidate(
+                        id = foodId,
+                        name = "Turkey",
+                        brand = "Brand",
+                        source = ResolvedSource.CACHE,
+                        kcal100 = 140.0,
+                        carb100 = 0.0,
+                        fat100 = 2.0,
+                        protein100 = 29.0,
+                    ),
+                    quantity = 100.0,
+                    unit = "g",
+                )
+            )
+            throw AssertionError("Expected IllegalStateException for runtime failure")
+        } catch (error: IllegalStateException) {
+            assertEquals("Clock runtime failure", error.message)
+            assertEquals(1, tracker.mealSaveEvents.size)
+            assertFalse(tracker.mealSaveEvents.first().success)
+            assertEquals("RUNTIME_FAILED", tracker.mealSaveEvents.first().errorCode)
+        }
+    }
+
+    @Test
+    fun saveMealEntry_whenDatabaseExceptionOccurs_tracksFailureAndRethrows() = runTest {
+        val db = Room.inMemoryDatabaseBuilder(
+            ApplicationProvider.getApplicationContext(),
+            AppDatabase::class.java,
+        ).allowMainThreadQueries().build()
+        val localDiaryRepository = LocalDiaryRepository(
+            db = db,
+            nowEpochMillis = { 1_700_000_000_000L },
+        )
+        db.close()
+
+        val foodId = foodRepository.upsertFood(
+            FoodItemEntity(
+                sourceId = "local-2c",
+                source = "CACHE",
+                name = "Oats",
+                brand = "Brand",
+                barcode = "1000000000203",
+                kcal100 = 389.0,
+                carb100 = 66.0,
+                fat100 = 7.0,
+                protein100 = 17.0,
+                lastSyncedAt = 1_700_000_000_000L,
+            )
+        )
+
+        val tracker = RecordingObservabilityTracker()
+        val saveUseCase = SaveMealEntryUseCase(
+            diaryRepository = localDiaryRepository,
+            buildMealPreviewUseCase = BuildMealPreviewUseCase(overrideRepository),
+            observabilityTracker = tracker,
+            nowDateProvider = { java.time.LocalDate.of(2026, 3, 30) },
+            nowOffsetProvider = { java.time.ZoneOffset.UTC },
+        )
+
+        try {
+            saveUseCase(
+                SaveMealEntryCommand(
+                    mealType = MealType.DINNER,
+                    food = MealFoodCandidate(
+                        id = foodId,
+                        name = "Oats",
+                        brand = "Brand",
+                        source = ResolvedSource.CACHE,
+                        kcal100 = 389.0,
+                        carb100 = 66.0,
+                        fat100 = 7.0,
+                        protein100 = 17.0,
+                    ),
+                    quantity = 50.0,
+                    unit = "g",
+                )
+            )
+            throw AssertionError("Expected runtime exception for closed database")
+        } catch (error: Exception) {
+            assertEquals(1, tracker.mealSaveEvents.size)
+            assertFalse(tracker.mealSaveEvents.first().success)
+            assertEquals("DB_WRITE_FAILED", tracker.mealSaveEvents.first().errorCode)
+        }
+    }
+
+    @Test
+    fun searchFoodsByText_success_tracksFoodSearchEventWithCacheSource() = runTest {
+        foodRepository.upsertFood(
+            FoodItemEntity(
+                sourceId = "local-search-1",
+                source = "CACHE",
+                name = "Chicken Breast",
+                brand = "Brand",
+                barcode = "1999999999001",
+                kcal100 = 165.0,
+                carb100 = 0.0,
+                fat100 = 3.6,
+                protein100 = 31.0,
+                lastSyncedAt = 1_700_000_000_000L,
+            )
+        )
+
+        val tracker = RecordingObservabilityTracker()
+        val useCase = SearchFoodsByTextUseCase(
+            foodRepository = foodRepository,
+            observabilityTracker = tracker,
+        )
+
+        val result = useCase("Chicken")
+        assertTrue(result is MealSearchResult.Success)
+        assertEquals(1, tracker.foodSearchEvents.size)
+        val event = tracker.foodSearchEvents.first()
+        assertEquals("text", event.origin)
+        assertEquals("success", event.outcome)
+        assertEquals("CACHE", event.source)
+        assertEquals(1, event.resultCount)
     }
 
     @Test
@@ -416,5 +569,42 @@ class MealLoggingUseCasesTest {
         val deleted = deleteUseCase(foodId)
         assertTrue(deleted)
         assertEquals(null, overrideRepository.getOverrideByFoodId(foodId))
+    }
+
+    private class RecordingObservabilityTracker : ObservabilityTracker {
+        data class FoodSearchEvent(
+            val origin: String,
+            val outcome: String,
+            val source: String?,
+            val resultCount: Int,
+            val errorCode: String?,
+            val retryable: Boolean,
+        )
+
+        data class MealSaveEvent(
+            val mealType: String,
+            val success: Boolean,
+            val errorCode: String?,
+        )
+
+        val foodSearchEvents = mutableListOf<FoodSearchEvent>()
+        val mealSaveEvents = mutableListOf<MealSaveEvent>()
+
+        override fun trackFoodSearch(
+            origin: String,
+            outcome: String,
+            source: String?,
+            resultCount: Int,
+            errorCode: String?,
+            retryable: Boolean,
+        ) {
+            foodSearchEvents += FoodSearchEvent(origin, outcome, source, resultCount, errorCode, retryable)
+        }
+
+        override fun trackMealSave(mealType: String, success: Boolean, errorCode: String?) {
+            mealSaveEvents += MealSaveEvent(mealType, success, errorCode)
+        }
+
+        override fun trackProviderSync(mode: String, success: Boolean, errorCode: String?, retryable: Boolean) = Unit
     }
 }

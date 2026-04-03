@@ -14,7 +14,12 @@ import com.myfitnessmeals.app.data.repository.LocalOverrideRepository
 import com.myfitnessmeals.app.data.repository.LocalProviderConnectionRepository
 import com.myfitnessmeals.app.data.repository.LocalUserSettingsRepository
 import com.myfitnessmeals.app.data.repository.UserSettingsRepository
+import com.myfitnessmeals.app.integration.analytics.LoggingTechnicalAnalytics
 import com.myfitnessmeals.app.integration.garmin.GarminIntegrationService
+import com.myfitnessmeals.app.observability.AndroidLogSink
+import com.myfitnessmeals.app.observability.DefaultObservabilityTracker
+import com.myfitnessmeals.app.observability.InMemoryOperationalMetricsRecorder
+import com.myfitnessmeals.app.observability.RedactingStructuredLogger
 import com.myfitnessmeals.app.domain.service.GoalComputationService
 import com.myfitnessmeals.app.security.EncryptedOAuthTokenStore
 import com.myfitnessmeals.app.domain.usecase.BuildMealPreviewUseCase
@@ -56,6 +61,26 @@ class AppGraph(private val context: Context) {
         EncryptedOAuthTokenStore(context)
     }
 
+    private val structuredLogger by lazy {
+        RedactingStructuredLogger(AndroidLogSink())
+    }
+
+    private val metricsRecorder by lazy {
+        InMemoryOperationalMetricsRecorder()
+    }
+
+    private val technicalAnalytics by lazy {
+        LoggingTechnicalAnalytics(structuredLogger)
+    }
+
+    val observabilityTracker by lazy {
+        DefaultObservabilityTracker(
+            analytics = technicalAnalytics,
+            metrics = metricsRecorder,
+            logger = structuredLogger,
+        )
+    }
+
     val overrideRepository: LocalOverrideRepository by lazy {
         LocalOverrideRepository(database.nutritionOverrideDao())
     }
@@ -73,15 +98,22 @@ class AppGraph(private val context: Context) {
             providerConnectionRepository = providerConnectionRepository,
             fitnessRepository = fitnessRepository,
             tokenStore = tokenStore,
+            observabilityTracker = observabilityTracker,
         )
     }
 
     val searchFoodsByTextUseCase: SearchFoodsByTextUseCase by lazy {
-        SearchFoodsByTextUseCase(foodRepository)
+        SearchFoodsByTextUseCase(
+            foodRepository = foodRepository,
+            observabilityTracker = observabilityTracker,
+        )
     }
 
     val searchFoodByBarcodeUseCase: SearchFoodByBarcodeUseCase by lazy {
-        SearchFoodByBarcodeUseCase(foodRepository)
+        SearchFoodByBarcodeUseCase(
+            foodRepository = foodRepository,
+            observabilityTracker = observabilityTracker,
+        )
     }
 
     val buildMealPreviewUseCase: BuildMealPreviewUseCase by lazy {
@@ -92,6 +124,7 @@ class AppGraph(private val context: Context) {
         SaveMealEntryUseCase(
             diaryRepository = diaryRepository,
             buildMealPreviewUseCase = buildMealPreviewUseCase,
+            observabilityTracker = observabilityTracker,
         )
     }
 

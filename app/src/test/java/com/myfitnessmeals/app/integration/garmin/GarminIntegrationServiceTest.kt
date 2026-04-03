@@ -6,6 +6,7 @@ import com.myfitnessmeals.app.data.local.AppDatabase
 import com.myfitnessmeals.app.data.repository.LocalFitnessRepository
 import com.myfitnessmeals.app.data.repository.LocalProviderConnectionRepository
 import com.myfitnessmeals.app.domain.model.ProviderType
+import com.myfitnessmeals.app.observability.ObservabilityTracker
 import com.myfitnessmeals.app.security.OAuthToken
 import com.myfitnessmeals.app.security.OAuthTokenStore
 import kotlinx.coroutines.test.runTest
@@ -46,10 +47,12 @@ class GarminIntegrationServiceTest {
 
     @Test
     fun connectAndManualSync_populatesFitnessAndStatus() = runTest {
+        val tracker = RecordingObservabilityTracker()
         val service = GarminIntegrationService(
             providerConnectionRepository = providerConnectionRepository,
             fitnessRepository = fitnessRepository,
             tokenStore = tokenStore,
+            observabilityTracker = tracker,
             garminClient = FakeGarminClient(),
             nowEpochMillis = { 1_700_000_000_000L },
             nowDate = { LocalDate.of(2026, 4, 2) },
@@ -70,6 +73,9 @@ class GarminIntegrationServiceTest {
         assertEquals(1, daily.size)
         assertEquals(ProviderType.GARMIN.name, daily.first().provider)
         assertTrue(daily.first().steps > 0)
+        assertEquals(1, tracker.providerSyncEvents.size)
+        assertEquals("manual", tracker.providerSyncEvents.first().mode)
+        assertTrue(tracker.providerSyncEvents.first().success)
     }
 
     @Test
@@ -95,6 +101,28 @@ class GarminIntegrationServiceTest {
         assertEquals(null, after?.tokenRef)
     }
 
+    @Test
+    fun syncWhenNotConnected_tracksProviderSyncFailure() = runTest {
+        val tracker = RecordingObservabilityTracker()
+        val service = GarminIntegrationService(
+            providerConnectionRepository = providerConnectionRepository,
+            fitnessRepository = fitnessRepository,
+            tokenStore = tokenStore,
+            observabilityTracker = tracker,
+            garminClient = FakeGarminClient(),
+            nowEpochMillis = { 1_700_000_000_000L },
+            nowDate = { LocalDate.of(2026, 4, 2) },
+        )
+
+        val sync = service.syncFitness(GarminSyncMode.APP_OPEN)
+        assertTrue(sync is GarminActionResult.Error)
+        assertEquals(1, tracker.providerSyncEvents.size)
+        val event = tracker.providerSyncEvents.first()
+        assertEquals("app_open", event.mode)
+        assertEquals("NOT_CONNECTED", event.errorCode)
+        assertTrue(!event.success)
+    }
+
     private class InMemoryOAuthTokenStore : OAuthTokenStore {
         private val map = mutableMapOf<String, OAuthToken>()
 
@@ -106,6 +134,32 @@ class GarminIntegrationServiceTest {
 
         override fun removeToken(tokenRef: String) {
             map.remove(tokenRef)
+        }
+    }
+
+    private class RecordingObservabilityTracker : ObservabilityTracker {
+        data class ProviderSyncEvent(
+            val mode: String,
+            val success: Boolean,
+            val errorCode: String?,
+            val retryable: Boolean,
+        )
+
+        val providerSyncEvents = mutableListOf<ProviderSyncEvent>()
+
+        override fun trackFoodSearch(
+            origin: String,
+            outcome: String,
+            source: String?,
+            resultCount: Int,
+            errorCode: String?,
+            retryable: Boolean,
+        ) = Unit
+
+        override fun trackMealSave(mealType: String, success: Boolean, errorCode: String?) = Unit
+
+        override fun trackProviderSync(mode: String, success: Boolean, errorCode: String?, retryable: Boolean) {
+            providerSyncEvents += ProviderSyncEvent(mode, success, errorCode, retryable)
         }
     }
 }

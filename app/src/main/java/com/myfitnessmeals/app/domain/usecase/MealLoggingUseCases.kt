@@ -12,8 +12,11 @@ import com.myfitnessmeals.app.domain.model.NewMealEntry
 import com.myfitnessmeals.app.domain.model.ResolvedSource
 import com.myfitnessmeals.app.domain.service.NutrientResolverService
 import com.myfitnessmeals.app.integration.off.OffCatalogError
+import com.myfitnessmeals.app.observability.NoOpObservabilityTracker
+import com.myfitnessmeals.app.observability.ObservabilityTracker
 import java.time.LocalDate
 import java.time.ZoneOffset
+import kotlinx.coroutines.CancellationException
 
 data class MealFoodCandidate(
     val id: Long,
@@ -88,28 +91,86 @@ sealed class MealSearchResult {
 
 class SearchFoodsByTextUseCase(
     private val foodRepository: LocalFoodRepository,
+    private val observabilityTracker: ObservabilityTracker = NoOpObservabilityTracker,
 ) {
     suspend operator fun invoke(query: String): MealSearchResult {
         return when (val result = foodRepository.searchFoodByText(query)) {
-            is FoodLookupResult.Success -> MealSearchResult.Success(
-                result.data.map { it.toCandidate(result.source) }
-            )
-            is FoodLookupResult.NotFound -> MealSearchResult.NotFound
-            is FoodLookupResult.Error -> result.error.toMealSearchError()
+            is FoodLookupResult.Success -> {
+                val mealResult = MealSearchResult.Success(result.data.map { it.toCandidate(result.source) })
+                observabilityTracker.trackFoodSearch(
+                    origin = "text",
+                    outcome = "success",
+                    source = result.source.name,
+                    resultCount = result.data.size,
+                )
+                mealResult
+            }
+
+            is FoodLookupResult.NotFound -> {
+                observabilityTracker.trackFoodSearch(
+                    origin = "text",
+                    outcome = "not_found",
+                    source = null,
+                    resultCount = 0,
+                )
+                MealSearchResult.NotFound
+            }
+
+            is FoodLookupResult.Error -> {
+                val mealError = result.error.toMealSearchError()
+                observabilityTracker.trackFoodSearch(
+                    origin = "text",
+                    outcome = "error",
+                    source = null,
+                    resultCount = 0,
+                    errorCode = mealError.code,
+                    retryable = mealError.retryable,
+                )
+                mealError
+            }
         }
     }
 }
 
 class SearchFoodByBarcodeUseCase(
     private val foodRepository: LocalFoodRepository,
+    private val observabilityTracker: ObservabilityTracker = NoOpObservabilityTracker,
 ) {
     suspend operator fun invoke(barcode: String): MealSearchResult {
         return when (val result = foodRepository.searchFoodByBarcode(barcode)) {
-            is FoodLookupResult.Success -> MealSearchResult.Success(
-                listOf(result.data.toCandidate(result.source))
-            )
-            is FoodLookupResult.NotFound -> MealSearchResult.NotFound
-            is FoodLookupResult.Error -> result.error.toMealSearchError()
+            is FoodLookupResult.Success -> {
+                val mealResult = MealSearchResult.Success(listOf(result.data.toCandidate(result.source)))
+                observabilityTracker.trackFoodSearch(
+                    origin = "barcode",
+                    outcome = "success",
+                    source = result.source.name,
+                    resultCount = 1,
+                )
+                mealResult
+            }
+
+            is FoodLookupResult.NotFound -> {
+                observabilityTracker.trackFoodSearch(
+                    origin = "barcode",
+                    outcome = "not_found",
+                    source = null,
+                    resultCount = 0,
+                )
+                MealSearchResult.NotFound
+            }
+
+            is FoodLookupResult.Error -> {
+                val mealError = result.error.toMealSearchError()
+                observabilityTracker.trackFoodSearch(
+                    origin = "barcode",
+                    outcome = "error",
+                    source = null,
+                    resultCount = 0,
+                    errorCode = mealError.code,
+                    retryable = mealError.retryable,
+                )
+                mealError
+            }
         }
     }
 }
@@ -223,36 +284,72 @@ class DeleteNutritionOverrideUseCase(
 class SaveMealEntryUseCase(
     private val diaryRepository: LocalDiaryRepository,
     private val buildMealPreviewUseCase: BuildMealPreviewUseCase,
+    private val observabilityTracker: ObservabilityTracker = NoOpObservabilityTracker,
     private val nowDateProvider: () -> LocalDate = { LocalDate.now() },
     private val nowOffsetProvider: () -> ZoneOffset = { ZoneOffset.systemDefault().rules.getOffset(java.time.Instant.now()) },
 ) {
     suspend operator fun invoke(command: SaveMealEntryCommand): Long {
-        require(command.quantity > 0) { "Meal quantity must be positive" }
+        try {
+            require(command.quantity > 0) { "Meal quantity must be positive" }
 
-        val preview = buildMealPreviewUseCase(
-            food = command.food,
-            quantity = command.quantity,
-            unit = command.unit,
-        )
-
-        val localDate = nowDateProvider().toString()
-        val timezoneOffsetMin = nowOffsetProvider().totalSeconds / 60
-
-        return diaryRepository.addMealEntry(
-            NewMealEntry(
-                localDate = localDate,
-                timezoneOffsetMin = timezoneOffsetMin,
-                mealType = command.mealType,
-                foodId = command.food.id,
-                quantityValue = command.quantity,
-                quantityUnit = command.unit,
-                resolvedSource = preview.resolvedSource,
-                kcalTotal = preview.kcalTotal,
-                carbTotal = preview.carbTotal,
-                fatTotal = preview.fatTotal,
-                proteinTotal = preview.proteinTotal,
+            val preview = buildMealPreviewUseCase(
+                food = command.food,
+                quantity = command.quantity,
+                unit = command.unit,
             )
-        )
+
+            val localDate = nowDateProvider().toString()
+            val timezoneOffsetMin = nowOffsetProvider().totalSeconds / 60
+
+            val entryId = diaryRepository.addMealEntry(
+                NewMealEntry(
+                    localDate = localDate,
+                    timezoneOffsetMin = timezoneOffsetMin,
+                    mealType = command.mealType,
+                    foodId = command.food.id,
+                    quantityValue = command.quantity,
+                    quantityUnit = command.unit,
+                    resolvedSource = preview.resolvedSource,
+                    kcalTotal = preview.kcalTotal,
+                    carbTotal = preview.carbTotal,
+                    fatTotal = preview.fatTotal,
+                    proteinTotal = preview.proteinTotal,
+                )
+            )
+
+            observabilityTracker.trackMealSave(
+                mealType = command.mealType.name,
+                success = true,
+            )
+            return entryId
+        } catch (error: IllegalArgumentException) {
+            observabilityTracker.trackMealSave(
+                mealType = command.mealType.name,
+                success = false,
+                errorCode = "VALIDATION_FAILED",
+            )
+            throw error
+        } catch (error: Exception) {
+            if (error is CancellationException) {
+                throw error
+            }
+            observabilityTracker.trackMealSave(
+                mealType = command.mealType.name,
+                success = false,
+                errorCode = mealSaveErrorCode(error),
+            )
+            throw error
+        }
+    }
+
+    private fun mealSaveErrorCode(error: Exception): String {
+        val className = error::class.java.simpleName.lowercase()
+        val message = error.message?.lowercase().orEmpty()
+        return if (className.contains("sqlite") || message.contains("database")) {
+            "DB_WRITE_FAILED"
+        } else {
+            "RUNTIME_FAILED"
+        }
     }
 }
 

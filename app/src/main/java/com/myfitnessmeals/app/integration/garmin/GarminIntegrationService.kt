@@ -4,6 +4,8 @@ import com.myfitnessmeals.app.data.local.ProviderConnectionEntity
 import com.myfitnessmeals.app.data.repository.LocalFitnessRepository
 import com.myfitnessmeals.app.data.repository.LocalProviderConnectionRepository
 import com.myfitnessmeals.app.domain.model.ProviderType
+import com.myfitnessmeals.app.observability.NoOpObservabilityTracker
+import com.myfitnessmeals.app.observability.ObservabilityTracker
 import com.myfitnessmeals.app.security.OAuthToken
 import com.myfitnessmeals.app.security.OAuthTokenStore
 import java.time.LocalDate
@@ -71,6 +73,7 @@ class GarminIntegrationService(
     private val providerConnectionRepository: LocalProviderConnectionRepository,
     private val fitnessRepository: LocalFitnessRepository,
     private val tokenStore: OAuthTokenStore,
+    private val observabilityTracker: ObservabilityTracker = NoOpObservabilityTracker,
     private val garminClient: GarminClient = FakeGarminClient(),
     private val nowEpochMillis: () -> Long = { System.currentTimeMillis() },
     private val nowDate: () -> LocalDate = { LocalDate.now() },
@@ -128,8 +131,15 @@ class GarminIntegrationService(
     }
 
     suspend fun syncFitness(mode: GarminSyncMode): GarminActionResult {
+        val modeLabel = if (mode == GarminSyncMode.APP_OPEN) "app_open" else "manual"
         val existing = providerConnectionRepository.getConnection(ProviderType.GARMIN)
         if (existing?.connectionState != STATE_CONNECTED || existing.tokenRef.isNullOrBlank()) {
+            observabilityTracker.trackProviderSync(
+                mode = modeLabel,
+                success = false,
+                errorCode = "NOT_CONNECTED",
+                retryable = false,
+            )
             return GarminActionResult.Error(
                 message = "Garmin is not connected",
                 code = "NOT_CONNECTED",
@@ -145,6 +155,12 @@ class GarminIntegrationService(
                     lastErrorCode = "TOKEN_MISSING",
                     updatedAt = nowEpochMillis(),
                 )
+            )
+            observabilityTracker.trackProviderSync(
+                mode = modeLabel,
+                success = false,
+                errorCode = "TOKEN_MISSING",
+                retryable = false,
             )
             return GarminActionResult.Error(
                 message = "Garmin token missing, reconnect required",
@@ -177,14 +193,25 @@ class GarminIntegrationService(
                 )
             )
 
-            val modeLabel = if (mode == GarminSyncMode.APP_OPEN) "app-open" else "manual"
-            GarminActionResult.Success("Garmin sync completed ($modeLabel)")
+            observabilityTracker.trackProviderSync(
+                mode = modeLabel,
+                success = true,
+            )
+
+            val modeText = if (mode == GarminSyncMode.APP_OPEN) "app-open" else "manual"
+            GarminActionResult.Success("Garmin sync completed ($modeText)")
         } catch (_: Exception) {
             providerConnectionRepository.upsertConnection(
                 existing.copy(
                     lastErrorCode = "SYNC_FAILED",
                     updatedAt = nowEpochMillis(),
                 )
+            )
+            observabilityTracker.trackProviderSync(
+                mode = modeLabel,
+                success = false,
+                errorCode = "SYNC_FAILED",
+                retryable = true,
             )
             GarminActionResult.Error(
                 message = "Garmin sync failed",

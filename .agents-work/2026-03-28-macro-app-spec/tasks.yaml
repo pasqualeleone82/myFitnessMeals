@@ -338,7 +338,7 @@ tasks:
       - "Crash su scenari rete degradata azzerati nei test"
 
   - id: T-010
-    status: not-started
+    status: completed
     type: chore
     title: "Add observability and telemetry"
     depends_on:

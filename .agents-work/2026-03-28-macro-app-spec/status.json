@@ -57,6 +57,8 @@
     "T-008 tests: aggiunti GarminIntegrationServiceTest (unit) e GarminSettingsFlowSmokeTest (androidTest)",
     "T-009 implemented: Search OFF error mapping uniformata (timeout/rate limit/unavailable/malformed) con messaggi user-friendly",
     "T-009 implemented: retry esplicito non bloccante aggiunto in MealLoggingScreen con azione Retry su errori retryable",
+    "T-010 assumption: osservabilita MVP implementata con eventi tecnici minimi (food_search, meal_save, provider_sync, provider_sync_failed), logger strutturato con redazione PII e metriche operative locali in-memory",
+    "T-010 fix: redazione PII normalizza chiavi snake/camel/kebab/space e include auth_code/oauth_code/refresh/secret/password; meal_save traccia success=false anche su eccezioni runtime/DB con codici errore deterministici e rethrow",
     "T-009 gate evidence: ./gradlew --no-daemon test verde; connectedAndroidTest attualmente bloccato su 2 smoke meal flaky (timeout su wait mealEntryCount)",
     "CR UX nav: tab top non piu coperte dalla status bar tramite statusBarsPadding, con tab bar compatibile test tags esistenti",
     "APK debug generato/installato/avviato su emulatore: app/build/outputs/apk/debug/app-debug.apk"
@@ -239,8 +241,14 @@
       "FIX_TESTS": 0,
       "FIX_SECURITY": 0,
       "FIX_BUILD": 0
+    },
+    "T-010": {
+      "FIX_REVIEW": 1,
+      "FIX_TESTS": 0,
+      "FIX_SECURITY": 0,
+      "FIX_BUILD": 0
     }
   },
   "last_ci_result": "yellow",
-  "last_update": "2026-04-02T04:30:00Z"
+  "last_update": "2026-04-03T21:10:00Z"
 }
