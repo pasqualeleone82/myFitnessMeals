@@ -23,6 +23,9 @@ interface MealEntryDao {
     @Query("SELECT * FROM meal_entry WHERE local_date = :localDate ORDER BY id ASC")
     suspend fun getByDate(localDate: String): List<MealEntryEntity>
 
+    @Query("SELECT * FROM meal_entry ORDER BY id ASC")
+    suspend fun getAll(): List<MealEntryEntity>
+
     @Query(
         """
         SELECT

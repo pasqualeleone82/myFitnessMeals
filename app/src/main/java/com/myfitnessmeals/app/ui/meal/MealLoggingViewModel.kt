@@ -115,7 +115,7 @@ class MealLoggingViewModel(
     }
 
     fun onQuantityChanged(value: String) {
-        _uiState.update { it.copy(quantityInput = value) }
+        _uiState.update { it.copy(quantityInput = normalizeDecimalInput(value)) }
         recalculatePreview()
     }
 
@@ -189,7 +189,7 @@ class MealLoggingViewModel(
             _uiState.update { it.copy(errorMessage = "Select a food first") }
             return
         }
-        val quantity = state.quantityInput.toDoubleOrNull()
+        val quantity = parseQuantity(state.quantityInput)
         if (quantity == null || quantity <= 0.0) {
             _uiState.update { it.copy(errorMessage = "Quantity must be greater than zero") }
             return
@@ -324,7 +324,7 @@ class MealLoggingViewModel(
             _uiState.update { it.copy(preview = null) }
             return
         }
-        val quantity = state.quantityInput.toDoubleOrNull()
+        val quantity = parseQuantity(state.quantityInput)
         if (quantity == null || quantity <= 0.0) {
             previewJob?.cancel()
             _uiState.update {
@@ -440,7 +440,7 @@ class MealLoggingViewModel(
         if (trimmed.isEmpty()) {
             return ParsedNumber(isValid = true, value = null)
         }
-        val parsed = trimmed.toDoubleOrNull()
+        val parsed = trimmed.replace(',', '.').toDoubleOrNull()
         if (parsed == null) {
             _uiState.update { it.copy(errorMessage = "Invalid $label value") }
             return ParsedNumber(isValid = false, value = null)
@@ -456,6 +456,34 @@ class MealLoggingViewModel(
         val isValid: Boolean,
         val value: Double?,
     )
+
+    private fun parseQuantity(raw: String): Double? {
+        return raw.trim().replace(',', '.').toDoubleOrNull()
+    }
+
+    private fun normalizeDecimalInput(raw: String): String {
+        val cleaned = buildString(raw.length) {
+            raw.forEach { char ->
+                when {
+                    char.isDigit() -> append(char)
+                    char == '.' || char == ',' -> append('.')
+                }
+            }
+        }
+
+        if (cleaned.isEmpty()) {
+            return ""
+        }
+
+        val firstDot = cleaned.indexOf('.')
+        if (firstDot < 0) {
+            return cleaned
+        }
+
+        val whole = cleaned.substring(0, firstDot).ifEmpty { "0" }
+        val decimal = cleaned.substring(firstDot + 1).replace(".", "")
+        return if (decimal.isEmpty()) "$whole." else "$whole.$decimal"
+    }
 
     private fun Double.formatOverrideInput(): String {
         val longValue = toLong()

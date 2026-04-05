@@ -12,7 +12,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.myfitnessmeals.app.R
 
 @Composable
 fun BarcodeLookupSection(
@@ -26,10 +28,10 @@ fun BarcodeLookupSection(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text(text = "Search by barcode", style = MaterialTheme.typography.titleMedium)
+        Text(text = stringResource(R.string.search_by_barcode), style = MaterialTheme.typography.titleMedium)
         if (showCameraPermissionFallback) {
             Text(
-                text = "Camera permission denied. You can still type the barcode manually.",
+                text = stringResource(R.string.barcode_permission_denied),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.error,
                 modifier = Modifier.testTag("meal_barcode_permission_fallback"),
@@ -39,7 +41,7 @@ fun BarcodeLookupSection(
             OutlinedTextField(
                 value = barcode,
                 onValueChange = onBarcodeChanged,
-                label = { Text("Barcode") },
+                label = { Text(stringResource(R.string.barcode_label)) },
                 modifier = Modifier
                     .weight(1f)
                     .testTag("meal_barcode_input"),
@@ -51,7 +53,7 @@ fun BarcodeLookupSection(
                     .padding(top = 4.dp)
                     .testTag("meal_barcode_button"),
             ) {
-                Text("Lookup")
+                Text(stringResource(R.string.barcode_lookup))
             }
             Button(
                 onClick = onScanClicked,
@@ -59,7 +61,7 @@ fun BarcodeLookupSection(
                     .padding(top = 4.dp)
                     .testTag("meal_barcode_scan_button"),
             ) {
-                Text("Scan")
+                Text(stringResource(R.string.barcode_scan))
             }
         }
     }

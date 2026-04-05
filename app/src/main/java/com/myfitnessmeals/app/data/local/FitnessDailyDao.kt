@@ -13,6 +13,9 @@ interface FitnessDailyDao {
     @Query("SELECT * FROM fitness_daily WHERE local_date = :localDate")
     suspend fun getForDate(localDate: String): List<FitnessDailyEntity>
 
+    @Query("SELECT * FROM fitness_daily ORDER BY local_date DESC")
+    suspend fun getAll(): List<FitnessDailyEntity>
+
     @Query("SELECT COALESCE(SUM(active_kcal), 0) FROM fitness_daily WHERE local_date = :localDate")
     suspend fun getActiveKcalForDate(localDate: String): Double
 }

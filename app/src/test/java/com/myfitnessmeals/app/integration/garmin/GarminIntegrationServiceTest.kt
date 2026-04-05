@@ -58,7 +58,7 @@ class GarminIntegrationServiceTest {
             nowDate = { LocalDate.of(2026, 4, 2) },
         )
 
-        val connect = service.connectProvider(authCode = "test")
+        val connect = service.connectProvider(authCode = "A1B2C3D4E5F6G7H8")
         assertTrue(connect is GarminActionResult.Success)
 
         val sync = service.syncFitness(GarminSyncMode.MANUAL)
@@ -89,7 +89,7 @@ class GarminIntegrationServiceTest {
             nowDate = { LocalDate.of(2026, 4, 2) },
         )
 
-        service.connectProvider(authCode = "test")
+        service.connectProvider(authCode = "A1B2C3D4E5F6G7H8")
         val before = providerConnectionRepository.getConnection(ProviderType.GARMIN)
         assertNotNull(before?.tokenRef)
 
@@ -134,6 +134,10 @@ class GarminIntegrationServiceTest {
 
         override fun removeToken(tokenRef: String) {
             map.remove(tokenRef)
+        }
+
+        override fun removeAllTokens() {
+            map.clear()
         }
     }
 

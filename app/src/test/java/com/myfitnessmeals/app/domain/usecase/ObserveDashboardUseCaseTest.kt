@@ -160,5 +160,9 @@ class ObserveDashboardUseCaseTest {
         override fun saveSettings(settings: UserSettings) {
             this.settings = settings
         }
+
+        override fun clearAll() {
+            settings = settings.copy(onboardingCompleted = false)
+        }
     }
 }

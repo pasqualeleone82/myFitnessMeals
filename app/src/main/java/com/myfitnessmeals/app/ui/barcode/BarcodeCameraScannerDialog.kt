@@ -1,6 +1,7 @@
 package com.myfitnessmeals.app.ui.barcode
 
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
 import androidx.camera.lifecycle.ProcessCameraProvider
@@ -119,6 +120,7 @@ fun BarcodeCameraScannerDialog(
     )
 }
 
+@androidx.annotation.OptIn(markerClass = [ExperimentalGetImage::class])
 private fun processImageProxy(
     imageProxy: ImageProxy,
     scanner: com.google.mlkit.vision.barcode.BarcodeScanner,

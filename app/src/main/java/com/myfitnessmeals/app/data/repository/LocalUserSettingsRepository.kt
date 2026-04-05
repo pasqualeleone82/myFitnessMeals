@@ -42,6 +42,10 @@ class LocalUserSettingsRepository(context: Context) : UserSettingsRepository {
             .apply()
     }
 
+    override fun clearAll() {
+        prefs.edit().clear().apply()
+    }
+
     private companion object {
         const val KEY_ONBOARDING_COMPLETED = "onboarding_completed"
         const val KEY_AGE = "age"

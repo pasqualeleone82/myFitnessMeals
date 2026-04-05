@@ -12,4 +12,10 @@ interface ProviderConnectionDao {
 
     @Query("SELECT * FROM provider_connection WHERE provider = :provider")
     suspend fun getByProvider(provider: String): ProviderConnectionEntity?
+
+    @Query("SELECT * FROM provider_connection ORDER BY provider ASC")
+    suspend fun getAll(): List<ProviderConnectionEntity>
+
+    @Query("DELETE FROM provider_connection")
+    suspend fun deleteAll(): Int
 }

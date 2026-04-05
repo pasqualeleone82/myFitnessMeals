@@ -8,8 +8,10 @@ import com.myfitnessmeals.app.observability.NoOpObservabilityTracker
 import com.myfitnessmeals.app.observability.ObservabilityTracker
 import com.myfitnessmeals.app.security.OAuthToken
 import com.myfitnessmeals.app.security.OAuthTokenStore
+import com.myfitnessmeals.app.security.isExpired
 import java.time.LocalDate
 import java.util.UUID
+import java.util.concurrent.TimeUnit
 
 enum class GarminSyncMode {
     APP_OPEN,
@@ -32,6 +34,7 @@ data class GarminTokenPayload(
     val accessToken: String,
     val refreshToken: String,
     val scopes: List<String>,
+    val expiresInSec: Long,
 )
 
 sealed class GarminActionResult {
@@ -47,6 +50,8 @@ sealed class GarminActionResult {
 interface GarminClient {
     suspend fun exchangeAuthCodeForToken(authCode: String): GarminTokenPayload
 
+    suspend fun refreshAccessToken(refreshToken: String): GarminTokenPayload
+
     suspend fun fetchDailyMetrics(accessToken: String, date: LocalDate): GarminDailyMetrics
 }
 
@@ -56,6 +61,17 @@ class FakeGarminClient : GarminClient {
             accessToken = "garmin-access-$authCode",
             refreshToken = "garmin-refresh-$authCode",
             scopes = listOf("activity", "profile"),
+            expiresInSec = TimeUnit.HOURS.toSeconds(1),
+        )
+    }
+
+    override suspend fun refreshAccessToken(refreshToken: String): GarminTokenPayload {
+        val seed = refreshToken.takeLast(12)
+        return GarminTokenPayload(
+            accessToken = "garmin-access-refresh-$seed",
+            refreshToken = refreshToken,
+            scopes = listOf("activity", "profile"),
+            expiresInSec = TimeUnit.HOURS.toSeconds(1),
         )
     }
 
@@ -78,29 +94,57 @@ class GarminIntegrationService(
     private val nowEpochMillis: () -> Long = { System.currentTimeMillis() },
     private val nowDate: () -> LocalDate = { LocalDate.now() },
 ) {
-    suspend fun connectProvider(authCode: String = "local-mvp-code"): GarminActionResult {
+    suspend fun connectProvider(authCode: String): GarminActionResult {
+        val sanitizedAuthCode = authCode.trim()
+        if (!isValidAuthCode(sanitizedAuthCode)) {
+            return GarminActionResult.Error(
+                message = "Invalid Garmin authorization code",
+                code = "INVALID_AUTH_CODE",
+                retryable = false,
+            )
+        }
+
         return try {
-            val tokenPayload = garminClient.exchangeAuthCodeForToken(authCode)
+            val tokenPayload = garminClient.exchangeAuthCodeForToken(sanitizedAuthCode)
+            if (!isValidTokenPayload(tokenPayload)) {
+                return GarminActionResult.Error(
+                    message = "Garmin returned invalid token payload",
+                    code = "INVALID_TOKEN_PAYLOAD",
+                    retryable = false,
+                )
+            }
             val tokenRef = UUID.randomUUID().toString()
+            val previousConnection = providerConnectionRepository.getConnection(ProviderType.GARMIN)
+            val now = nowEpochMillis()
             tokenStore.putToken(
                 tokenRef = tokenRef,
                 token = OAuthToken(
                     accessToken = tokenPayload.accessToken,
                     refreshToken = tokenPayload.refreshToken,
+                    expiresAtEpochSeconds = now.toEpochSeconds() + tokenPayload.expiresInSec,
                 ),
             )
 
-            providerConnectionRepository.upsertConnection(
-                ProviderConnectionEntity(
-                    provider = ProviderType.GARMIN.name,
-                    connectionState = STATE_CONNECTED,
-                    tokenRef = tokenRef,
-                    scopes = tokenPayload.scopes.joinToString(","),
-                    lastSyncAt = null,
-                    lastErrorCode = null,
-                    updatedAt = nowEpochMillis(),
+            try {
+                providerConnectionRepository.upsertConnection(
+                    ProviderConnectionEntity(
+                        provider = ProviderType.GARMIN.name,
+                        connectionState = STATE_CONNECTED,
+                        tokenRef = tokenRef,
+                        scopes = tokenPayload.scopes.joinToString(","),
+                        lastSyncAt = null,
+                        lastErrorCode = null,
+                        updatedAt = now,
+                    )
                 )
-            )
+                previousConnection?.tokenRef
+                    ?.takeIf { it != tokenRef }
+                    ?.let(tokenStore::removeToken)
+            } catch (error: Exception) {
+                tokenStore.removeToken(tokenRef)
+                throw error
+            }
+
             GarminActionResult.Success("Garmin connected")
         } catch (_: Exception) {
             GarminActionResult.Error(
@@ -169,9 +213,42 @@ class GarminIntegrationService(
             )
         }
 
+        val activeToken = if (token.isExpired(nowEpochMillis().toEpochSeconds())) {
+            val refreshed = try {
+                garminClient.refreshAccessToken(token.refreshToken)
+            } catch (_: Exception) {
+                null
+            }
+
+            if (refreshed == null || !isValidTokenPayload(refreshed)) {
+                providerConnectionRepository.upsertConnection(
+                    existing.copy(
+                        connectionState = STATE_REAUTH_REQUIRED,
+                        lastErrorCode = "TOKEN_EXPIRED",
+                        updatedAt = nowEpochMillis(),
+                    )
+                )
+                return GarminActionResult.Error(
+                    message = "Garmin token expired, reconnect required",
+                    code = "TOKEN_EXPIRED",
+                    retryable = false,
+                )
+            }
+
+            val refreshedToken = OAuthToken(
+                accessToken = refreshed.accessToken,
+                refreshToken = refreshed.refreshToken,
+                expiresAtEpochSeconds = nowEpochMillis().toEpochSeconds() + refreshed.expiresInSec,
+            )
+            tokenStore.putToken(existing.tokenRef, refreshedToken)
+            refreshedToken
+        } else {
+            token
+        }
+
         return try {
             val date = nowDate()
-            val metrics = garminClient.fetchDailyMetrics(token.accessToken, date)
+            val metrics = garminClient.fetchDailyMetrics(activeToken.accessToken, date)
             val now = nowEpochMillis()
 
             fitnessRepository.upsertDailyFitness(
@@ -234,5 +311,18 @@ class GarminIntegrationService(
         const val STATE_CONNECTED = "CONNECTED"
         const val STATE_DISCONNECTED = "DISCONNECTED"
         const val STATE_REAUTH_REQUIRED = "REAUTH_REQUIRED"
+        val REQUIRED_SCOPES = setOf("activity", "profile")
+        val AUTH_CODE_REGEX = Regex("^[A-Za-z0-9._~-]{16,512}$")
     }
+
+    private fun isValidAuthCode(authCode: String): Boolean = AUTH_CODE_REGEX.matches(authCode)
+
+    private fun isValidTokenPayload(payload: GarminTokenPayload): Boolean {
+        if (payload.accessToken.isBlank() || payload.refreshToken.isBlank()) return false
+        if (payload.expiresInSec <= 0L) return false
+        val scopes = payload.scopes.map { it.trim().lowercase() }.filter { it.isNotEmpty() }.toSet()
+        return scopes.containsAll(REQUIRED_SCOPES)
+    }
+
+    private fun Long.toEpochSeconds(): Long = this / 1000L
 }

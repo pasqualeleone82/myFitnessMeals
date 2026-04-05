@@ -15,4 +15,7 @@ interface NutritionOverrideDao {
 
     @Query("DELETE FROM nutrition_override WHERE food_id = :foodId")
     suspend fun deleteByFoodId(foodId: Long): Int
+
+    @Query("SELECT * FROM nutrition_override ORDER BY updated_at DESC")
+    suspend fun getAll(): List<NutritionOverrideEntity>
 }

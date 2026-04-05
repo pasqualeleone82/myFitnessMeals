@@ -55,13 +55,28 @@
     "T-008 implemented: introdotti GarminIntegrationService + GarminSyncWorker (app-open), secure token store cifrato, e controlli Settings per connect/disconnect/sync con stato provider",
     "T-008 gate evidence: ./gradlew --no-daemon test e ./gradlew --no-daemon connectedAndroidTest verdi (12 instrumented test)",
     "T-008 tests: aggiunti GarminIntegrationServiceTest (unit) e GarminSettingsFlowSmokeTest (androidTest)",
+    "T-008 security hardening: auth code Garmin validato con regex stretta, payload token/scopes validato, token rotation su reconnect e refresh su scadenza",
+    "T-008 security hardening: token store fail-closed (nessun fallback plaintext), validazione tokenRef UUID e wipe completo token disponibile",
+    "T-008 security hardening: Garmin app-open sync con vincolo network connected + exponential backoff WorkManager",
     "T-009 implemented: Search OFF error mapping uniformata (timeout/rate limit/unavailable/malformed) con messaggi user-friendly",
     "T-009 implemented: retry esplicito non bloccante aggiunto in MealLoggingScreen con azione Retry su errori retryable",
     "T-010 assumption: osservabilita MVP implementata con eventi tecnici minimi (food_search, meal_save, provider_sync, provider_sync_failed), logger strutturato con redazione PII e metriche operative locali in-memory",
     "T-010 fix: redazione PII normalizza chiavi snake/camel/kebab/space e include auth_code/oauth_code/refresh/secret/password; meal_save traccia success=false anche su eccezioni runtime/DB con codici errore deterministici e rethrow",
-    "T-009 gate evidence: ./gradlew --no-daemon test verde; connectedAndroidTest attualmente bloccato su 2 smoke meal flaky (timeout su wait mealEntryCount)",
+    "T-009 gate evidence: ./gradlew --no-daemon test verde; ./gradlew --no-daemon :app:connectedDebugAndroidTest verde dopo stabilizzazione smoke meal",
     "CR UX nav: tab top non piu coperte dalla status bar tramite statusBarsPadding, con tab bar compatibile test tags esistenti",
-    "APK debug generato/installato/avviato su emulatore: app/build/outputs/apk/debug/app-debug.apk"
+    "APK debug generato/installato/avviato su emulatore: app/build/outputs/apk/debug/app-debug.apk",
+    "T-009 stabilization increment: MealLoggingFlowSmokeTest usa helper clickSaveMealEntry (dismiss keyboard + waitForIdle) per ridurre flaky input/keyboard focus",
+    "Gate locali aggiornati: ./gradlew --no-daemon test, ./gradlew --no-daemon assembleDebug, ./gradlew --no-daemon :app:lintDebug e ./gradlew --no-daemon :app:connectedDebugAndroidTest verdi",
+    "T-008 hardening test: GarminSettingsFlowSmokeTest reso meno flaky su assert stato connessione (waitUntil su node existence)",
+    "T-011 implemented: use case export JSON locale + delete-all dati locali con conferma esplicita in Settings",
+    "Compile-only gate (senza run test): :app:compileDebugKotlin, :app:compileDebugAndroidTestKotlin e :app:compileDebugUnitTestKotlin verdi",
+    "T-012 completed: ./gradlew --no-daemon test, ./gradlew --no-daemon :app:connectedDebugAndroidTest e ./gradlew --no-daemon lint verdi",
+    "T-013 completed: README allineato all'implementazione + release-checklist.md + operational-runbook.md",
+    "CR UI completed: dashboard default, bottom navigation con 4 tab, FAB centrale con quick actions add/scan, dialog conferma uscita",
+    "i18n EN/IT introdotta con risorse strings.xml e values-it/strings.xml e wiring stringResource su Main/Meal/Dashboard/History/Settings",
+    "Meal UX completed: unit selector a chip (g/ml/serving), quantita decimale con normalizzazione . e ,",
+    "Gate finale confermato: ./gradlew --no-daemon :app:connectedDebugAndroidTest -> BUILD SUCCESSFUL (13/13)",
+    "APK debug aggiornata disponibile in app/build/outputs/apk/debug/app-debug.apk"
   ],
   "known_issues": [
     "Warning non bloccante AGP: compileSdk=35 oltre il livello ufficialmente testato da plugin; valutare android.suppressUnsupportedCompileSdk=35 se il warning disturba la CI",
@@ -214,8 +229,8 @@
     "copilot_checked_at": "2026-04-01T22:15:00Z",
     "session_paused": false,
     "pause_reason": null,
-    "resume_from_task_id": "T-009",
-    "next_task_candidate": "T-009"
+    "resume_from_task_id": "T-008",
+    "next_task_candidate": "T-008"
   },
   "retry_counts": {
     "T-001": {
@@ -249,6 +264,6 @@
       "FIX_BUILD": 0
     }
   },
-  "last_ci_result": "yellow",
-  "last_update": "2026-04-03T21:10:00Z"
+  "last_ci_result": "green",
+  "last_update": "2026-04-05T23:20:00Z"
 }

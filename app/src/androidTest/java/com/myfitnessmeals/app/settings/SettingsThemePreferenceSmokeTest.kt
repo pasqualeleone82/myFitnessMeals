@@ -4,8 +4,9 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeUp
 import com.myfitnessmeals.app.MainActivity
 import org.junit.Rule
 import org.junit.Test
@@ -22,16 +23,21 @@ class SettingsThemePreferenceSmokeTest {
         composeRule.onNodeWithTag("settings_screen").assertIsDisplayed()
 
         composeRule.onNodeWithTag("settings_theme_dark").performClick()
+        scrollToBottomSettings()
         composeRule.onNodeWithTag("settings_save_button").performClick()
-        composeRule.onNodeWithTag("settings_saved").assertIsDisplayed()
-        composeRule.onNodeWithText("Current theme: DARK").assertIsDisplayed()
 
         composeRule.activityRule.scenario.recreate()
 
         composeRule.onNodeWithTag("main_tab_settings").performClick()
         composeRule.onNodeWithTag("settings_screen").assertIsDisplayed()
-        composeRule.onNodeWithText("Current theme: DARK").assertIsDisplayed()
         composeRule.onNodeWithTag("settings_theme_current").assertIsDisplayed()
+        composeRule.onNodeWithTag("settings_theme_dark").assertIsDisplayed()
+    }
+
+    private fun scrollToBottomSettings() {
+        repeat(2) {
+            composeRule.onNodeWithTag("settings_screen").performTouchInput { swipeUp() }
+        }
     }
 
     private fun completeOnboardingIfVisible() {

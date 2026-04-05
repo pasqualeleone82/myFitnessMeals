@@ -48,6 +48,9 @@ interface FoodDao {
     @Query("SELECT * FROM food_item WHERE name LIKE :query ESCAPE '\\' ORDER BY last_synced_at DESC LIMIT :limit")
     suspend fun searchByName(query: String, limit: Int): List<FoodItemEntity>
 
+    @Query("SELECT * FROM food_item ORDER BY id ASC")
+    suspend fun getAll(): List<FoodItemEntity>
+
     @Transaction
     suspend fun upsertOffConflictAware(food: FoodItemEntity): Long {
         val canonicalKey = food.canonicalExternalKey ?: return upsert(food)

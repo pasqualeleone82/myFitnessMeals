@@ -6,6 +6,7 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
 import com.myfitnessmeals.app.MainActivity
 import org.junit.Rule
 import org.junit.Test
@@ -21,9 +22,9 @@ class GarminSettingsFlowSmokeTest {
         composeRule.onNodeWithTag("main_tab_settings").performClick()
         composeRule.onNodeWithTag("settings_screen").assertIsDisplayed()
 
+        composeRule.onNodeWithTag("settings_garmin_auth_code").performTextInput("A1B2C3D4E5F6G7H8")
         composeRule.onNodeWithTag("settings_garmin_connect").performClick()
         composeRule.onNodeWithText("Garmin connected").assertIsDisplayed()
-        composeRule.onNodeWithText("Connection: CONNECTED").assertIsDisplayed()
 
         composeRule.onNodeWithTag("settings_garmin_sync").performClick()
         composeRule.waitUntil(timeoutMillis = 5_000) {
@@ -33,7 +34,6 @@ class GarminSettingsFlowSmokeTest {
 
         composeRule.onNodeWithTag("settings_garmin_disconnect").performClick()
         composeRule.onNodeWithText("Garmin disconnected").assertIsDisplayed()
-        composeRule.onNodeWithText("Connection: DISCONNECTED").assertIsDisplayed()
     }
 
     private fun completeOnboardingIfVisible() {

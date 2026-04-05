@@ -4,6 +4,10 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Fastfood
+import androidx.compose.material.icons.filled.Scale
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -16,7 +20,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -24,15 +30,20 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.myfitnessmeals.app.R
 import com.myfitnessmeals.app.domain.model.MealType
 import com.myfitnessmeals.app.domain.model.ResolvedSource
 import com.myfitnessmeals.app.ui.fooddetail.FoodDetailCard
@@ -41,7 +52,10 @@ import com.myfitnessmeals.app.ui.barcode.BarcodeLookupSection
 import com.myfitnessmeals.app.ui.search.FoodSearchSection
 
 @Composable
-fun MealLoggingRoute(viewModel: MealLoggingViewModel = viewModel()) {
+fun MealLoggingRoute(
+    viewModel: MealLoggingViewModel = viewModel(),
+    scanRequestKey: Long = 0,
+) {
     val state by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     var showScanner by remember { mutableStateOf(false) }
@@ -54,6 +68,26 @@ fun MealLoggingRoute(viewModel: MealLoggingViewModel = viewModel()) {
         showPermissionFallback = !granted
     }
 
+    val openScanner: () -> Unit = {
+        val hasPermission = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.CAMERA,
+        ) == PackageManager.PERMISSION_GRANTED
+
+        if (hasPermission) {
+            showPermissionFallback = false
+            showScanner = true
+        } else {
+            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+    }
+
+    LaunchedEffect(scanRequestKey) {
+        if (scanRequestKey > 0L) {
+            openScanner()
+        }
+    }
+
     MealLoggingScreen(
         state = state,
         onSearchQueryChanged = viewModel::onSearchQueryChanged,
@@ -61,19 +95,7 @@ fun MealLoggingRoute(viewModel: MealLoggingViewModel = viewModel()) {
         showCameraPermissionFallback = showPermissionFallback,
         onBarcodeChanged = viewModel::onBarcodeChanged,
         onBarcodeLookupClicked = viewModel::searchByBarcode,
-        onBarcodeScanClicked = {
-            val hasPermission = ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.CAMERA,
-            ) == PackageManager.PERMISSION_GRANTED
-
-            if (hasPermission) {
-                showPermissionFallback = false
-                showScanner = true
-            } else {
-                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
-            }
-        },
+        onBarcodeScanClicked = openScanner,
         onMealTypeSelected = viewModel::onMealTypeSelected,
         onFoodSelected = viewModel::onFoodSelected,
         onQuantityChanged = viewModel::onQuantityChanged,
@@ -138,7 +160,14 @@ fun MealLoggingScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item {
-                Text(text = "Meal logging", style = MaterialTheme.typography.headlineSmall)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(
+                        imageVector = Icons.Filled.Fastfood,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                    Text(text = stringResource(R.string.meal_logging_title), style = MaterialTheme.typography.headlineSmall)
+                }
             }
 
             item {
@@ -179,7 +208,7 @@ fun MealLoggingScreen(
                                 onClick = onRetryClicked,
                                 modifier = Modifier.testTag("meal_error_retry"),
                             ) {
-                                Text("Retry")
+                                Text(stringResource(R.string.meal_retry))
                             }
                         }
                     }
@@ -187,7 +216,14 @@ fun MealLoggingScreen(
             }
 
             item {
-                Text(text = "Results", style = MaterialTheme.typography.titleMedium)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(
+                        imageVector = Icons.Filled.Search,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                    Text(text = stringResource(R.string.meal_results), style = MaterialTheme.typography.titleMedium)
+                }
             }
 
             items(state.searchResults, key = { it.id }) { food ->
@@ -196,6 +232,9 @@ fun MealLoggingScreen(
                         .fillMaxWidth()
                         .clickable { onFoodSelected(food) }
                         .testTag("meal_result_${food.id}"),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+                    ),
                     border = if (state.selectedFood?.id == food.id) {
                         BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
                     } else {
@@ -204,8 +243,8 @@ fun MealLoggingScreen(
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {
                         Text(food.name, style = MaterialTheme.typography.titleSmall)
-                        Text(food.brand ?: "Unknown brand", style = MaterialTheme.typography.bodyMedium)
-                        Text("Source: ${food.source}", style = MaterialTheme.typography.bodySmall)
+                        Text(food.brand ?: stringResource(R.string.meal_unknown_brand), style = MaterialTheme.typography.bodyMedium)
+                        Text(stringResource(R.string.meal_source, food.source), style = MaterialTheme.typography.bodySmall)
                     }
                 }
             }
@@ -242,7 +281,14 @@ fun MealLoggingScreen(
             }
 
             item {
-                Text(text = "Logged entries", style = MaterialTheme.typography.titleMedium)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(
+                        imageVector = Icons.Filled.Scale,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                    Text(text = stringResource(R.string.meal_logged_entries), style = MaterialTheme.typography.titleMedium)
+                }
             }
 
             items(state.entries, key = { it.id }) { entry ->
@@ -250,19 +296,28 @@ fun MealLoggingScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("meal_entry_${entry.id}"),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                    ),
                 ) {
                     Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text("${entry.mealType}: ${entry.foodName}", style = MaterialTheme.typography.titleSmall)
                         Text("${entry.quantityValue} ${entry.quantityUnit}")
                         Text(
-                            "kcal ${entry.kcalTotal.format1()} | C ${entry.carbTotal.format1()} | F ${entry.fatTotal.format1()} | P ${entry.proteinTotal.format1()}",
+                            stringResource(
+                                R.string.meal_entry_line,
+                                entry.kcalTotal,
+                                entry.carbTotal,
+                                entry.fatTotal,
+                                entry.proteinTotal,
+                            ),
                             style = MaterialTheme.typography.bodySmall,
                         )
                         Button(
                             onClick = { onDeleteEntry(entry.id) },
                             modifier = Modifier.testTag("meal_delete_${entry.id}"),
                         ) {
-                            Text("Delete")
+                            Text(stringResource(R.string.meal_delete))
                         }
                     }
                 }
@@ -283,12 +338,12 @@ private fun NutritionOverrideSection(
     onClearClicked: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(text = "Nutrition override", style = MaterialTheme.typography.titleMedium)
+        Text(text = stringResource(R.string.meal_override_title), style = MaterialTheme.typography.titleMedium)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
             OutlinedTextField(
                 value = state.overrideKcalInput,
                 onValueChange = onKcalChanged,
-                label = { Text("kcal/100") },
+                label = { Text(stringResource(R.string.meal_override_kcal)) },
                 modifier = Modifier
                     .weight(1f)
                     .testTag("override_kcal_input"),
@@ -297,7 +352,7 @@ private fun NutritionOverrideSection(
             OutlinedTextField(
                 value = state.overrideCarbInput,
                 onValueChange = onCarbChanged,
-                label = { Text("carb/100") },
+                label = { Text(stringResource(R.string.meal_override_carb)) },
                 modifier = Modifier
                     .weight(1f)
                     .testTag("override_carb_input"),
@@ -309,7 +364,7 @@ private fun NutritionOverrideSection(
             OutlinedTextField(
                 value = state.overrideFatInput,
                 onValueChange = onFatChanged,
-                label = { Text("fat/100") },
+                label = { Text(stringResource(R.string.meal_override_fat)) },
                 modifier = Modifier
                     .weight(1f)
                     .testTag("override_fat_input"),
@@ -318,7 +373,7 @@ private fun NutritionOverrideSection(
             OutlinedTextField(
                 value = state.overrideProteinInput,
                 onValueChange = onProteinChanged,
-                label = { Text("protein/100") },
+                label = { Text(stringResource(R.string.meal_override_protein)) },
                 modifier = Modifier
                     .weight(1f)
                     .testTag("override_protein_input"),
@@ -329,7 +384,7 @@ private fun NutritionOverrideSection(
         OutlinedTextField(
             value = state.overrideNoteInput,
             onValueChange = onNoteChanged,
-            label = { Text("Note") },
+            label = { Text(stringResource(R.string.meal_override_note)) },
             modifier = Modifier
                 .fillMaxWidth()
                 .testTag("override_note_input"),
@@ -343,7 +398,7 @@ private fun NutritionOverrideSection(
                     .weight(1f)
                     .testTag("override_save_button"),
             ) {
-                Text("Save override")
+                Text(stringResource(R.string.meal_override_save))
             }
             Button(
                 onClick = onClearClicked,
@@ -351,7 +406,7 @@ private fun NutritionOverrideSection(
                     .weight(1f)
                     .testTag("override_clear_button"),
             ) {
-                Text("Clear override")
+                Text(stringResource(R.string.meal_override_clear))
             }
         }
     }
@@ -363,7 +418,7 @@ private fun MealTypeSelector(
     onMealTypeSelected: (MealType) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(text = "Meal type", style = MaterialTheme.typography.titleMedium)
+        Text(text = stringResource(R.string.meal_type_title), style = MaterialTheme.typography.titleMedium)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
             MealType.entries.forEach { mealType ->
                 FilterChip(
@@ -384,27 +439,35 @@ private fun PortionDetailSection(
     onUnitChanged: (String) -> Unit,
     onSaveClicked: () -> Unit,
 ) {
+    val unitChoices = listOf("g", "ml", "serving")
+
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(text = "Portion detail", style = MaterialTheme.typography.titleMedium)
+        Text(text = stringResource(R.string.meal_portion_title), style = MaterialTheme.typography.titleMedium)
+        OutlinedTextField(
+            value = state.quantityInput,
+            onValueChange = onQuantityChanged,
+            label = { Text(stringResource(R.string.meal_quantity_label)) },
+            supportingText = { Text(stringResource(R.string.meal_quantity_help)) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("meal_quantity_input"),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        )
+
+        Text(
+            text = stringResource(R.string.meal_unit_label),
+            style = MaterialTheme.typography.bodyMedium,
+        )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            OutlinedTextField(
-                value = state.quantityInput,
-                onValueChange = onQuantityChanged,
-                label = { Text("Quantity") },
-                modifier = Modifier
-                    .weight(1f)
-                    .testTag("meal_quantity_input"),
-                singleLine = true,
-            )
-            OutlinedTextField(
-                value = state.unitInput,
-                onValueChange = onUnitChanged,
-                label = { Text("Unit (g/ml/serving)") },
-                modifier = Modifier
-                    .weight(1f)
-                    .testTag("meal_unit_input"),
-                singleLine = true,
-            )
+            unitChoices.forEach { unit ->
+                FilterChip(
+                    selected = state.unitInput.equals(unit, ignoreCase = true),
+                    onClick = { onUnitChanged(unit) },
+                    label = { Text(unit) },
+                    modifier = Modifier.testTag("meal_unit_$unit"),
+                )
+            }
         }
 
         state.preview?.let { preview ->
@@ -431,7 +494,7 @@ private fun PortionDetailSection(
                 .fillMaxWidth()
                 .testTag("meal_save_button"),
         ) {
-            Text("Save meal entry")
+            Text(stringResource(R.string.meal_save_entry))
         }
     }
 }
@@ -443,13 +506,18 @@ private fun DailyTotalsCard(
     fat: Double,
     protein: Double,
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f),
+        ),
+    ) {
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("Day totals", style = MaterialTheme.typography.titleMedium)
-            Text("Calories: ${kcal.format1()}", modifier = Modifier.testTag("meal_total_kcal"))
-            Text("Carbs: ${carb.format1()}")
-            Text("Fat: ${fat.format1()}")
-            Text("Protein: ${protein.format1()}")
+            Text(stringResource(R.string.meal_day_totals), style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.meal_total_calories, kcal), modifier = Modifier.testTag("meal_total_kcal"))
+            Text(stringResource(R.string.meal_total_carbs, carb))
+            Text(stringResource(R.string.meal_total_fat, fat))
+            Text(stringResource(R.string.meal_total_protein, protein))
         }
     }
 }

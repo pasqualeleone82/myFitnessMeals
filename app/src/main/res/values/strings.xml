@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">myFitnessMeals</string>
+
+    <string name="main_tab_dashboard">Dashboard</string>
+    <string name="main_tab_meal">Meal</string>
+    <string name="main_tab_history">History</string>
+    <string name="main_tab_settings">Settings</string>
+
+    <string name="exit_dialog_title">Exit app</string>
+    <string name="exit_dialog_message">Do you want to close MyFitnessMeals?</string>
+    <string name="exit_action">Exit</string>
+    <string name="cancel_action">Cancel</string>
+
+    <string name="quick_add_food">Add food</string>
+    <string name="quick_scan_barcode">Scan barcode</string>
+
+    <string name="meal_logging_title">Meal logging</string>
+    <string name="meal_results">Results</string>
+    <string name="meal_logged_entries">Logged entries</string>
+    <string name="meal_unknown_brand">Unknown brand</string>
+    <string name="meal_source">Source: %1$s</string>
+    <string name="meal_entry_line">kcal %1$.1f | C %2$.1f | F %3$.1f | P %4$.1f</string>
+    <string name="meal_delete">Delete</string>
+    <string name="meal_retry">Retry</string>
+    <string name="meal_type_title">Meal type</string>
+    <string name="meal_portion_title">Portion detail</string>
+    <string name="meal_quantity_label">Quantity</string>
+    <string name="meal_quantity_help">Numbers only, decimal separator: . or ,</string>
+    <string name="meal_unit_label">Unit</string>
+    <string name="meal_save_entry">Save meal entry</string>
+    <string name="meal_override_title">Nutrition override</string>
+    <string name="meal_override_kcal">kcal/100</string>
+    <string name="meal_override_carb">carb/100</string>
+    <string name="meal_override_fat">fat/100</string>
+    <string name="meal_override_protein">protein/100</string>
+    <string name="meal_override_note">Note</string>
+    <string name="meal_override_save">Save override</string>
+    <string name="meal_override_clear">Clear override</string>
+    <string name="meal_day_totals">Day totals</string>
+    <string name="meal_total_calories">Calories: %1$.1f</string>
+    <string name="meal_total_carbs">Carbs: %1$.1f</string>
+    <string name="meal_total_fat">Fat: %1$.1f</string>
+    <string name="meal_total_protein">Protein: %1$.1f</string>
+
+    <string name="search_by_text">Search by text</string>
+    <string name="search_food_name">Food name</string>
+    <string name="search_action">Search</string>
+
+    <string name="search_by_barcode">Search by barcode</string>
+    <string name="barcode_label">Barcode</string>
+    <string name="barcode_lookup">Lookup</string>
+    <string name="barcode_scan">Scan</string>
+    <string name="barcode_permission_denied">Camera permission denied. You can still type the barcode manually.</string>
+
+    <string name="dashboard_title">Dashboard</string>
+    <string name="dashboard_calories">Calories</string>
+    <string name="dashboard_target">Target: %1$.1f</string>
+    <string name="dashboard_intake">Intake: %1$.1f</string>
+    <string name="dashboard_burned">Burned: %1$.1f</string>
+    <string name="dashboard_remaining">Remaining: %1$.1f</string>
+    <string name="dashboard_macros">Macros</string>
+    <string name="dashboard_macro_carb">Carbs: %1$.1f g (%2$d%%)</string>
+    <string name="dashboard_macro_fat">Fat: %1$.1f g (%2$d%%)</string>
+    <string name="dashboard_macro_protein">Protein: %1$.1f g (%2$d%%)</string>
+    <string name="dashboard_steps">Steps</string>
+    <string name="dashboard_weight">Weight</string>
+    <string name="dashboard_weight_value">%1$.1f kg</string>
+    <string name="dashboard_exercise_kcal">Exercise kcal</string>
+    <string name="dashboard_workout_min">Workout min</string>
+
+    <string name="history_title">History</string>
+    <string name="history_previous">Previous</string>
+    <string name="history_next">Next</string>
+    <string name="history_showing_range">Showing last 90 days</string>
+
+    <string name="settings_title">Settings</string>
+    <string name="settings_target_kcal">Target kcal</string>
+    <string name="settings_carb_pct">Carb %%</string>
+    <string name="settings_fat_pct">Fat %%</string>
+    <string name="settings_protein_pct">Protein %%</string>
+    <string name="settings_theme">Theme</string>
+    <string name="settings_theme_system">System</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_theme_current">Current theme: %1$s</string>
+    <string name="settings_garmin">Garmin</string>
+    <string name="settings_connection">Connection: %1$s</string>
+    <string name="settings_last_sync">Last sync: %1$s</string>
+    <string name="settings_garmin_auth_code">Garmin auth code</string>
+    <string name="settings_last_error">Last error: %1$s</string>
+    <string name="settings_connect">Connect</string>
+    <string name="settings_disconnect">Disconnect</string>
+    <string name="settings_sync_now">Sync now</string>
+    <string name="settings_privacy">Privacy</string>
+    <string name="settings_export_data">Export data</string>
+    <string name="settings_delete_all_data">Delete all data</string>
+    <string name="settings_confirm_delete">Confirm delete</string>
+    <string name="settings_save">Save settings</string>
+</resources>

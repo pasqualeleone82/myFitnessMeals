@@ -7,7 +7,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DirectionsWalk
+import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.MonitorWeight
+import androidx.compose.material.icons.filled.PieChart
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -16,11 +24,13 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.myfitnessmeals.app.AppGraph
+import com.myfitnessmeals.app.R
 import com.myfitnessmeals.app.domain.usecase.DashboardSnapshot
 import com.myfitnessmeals.app.domain.usecase.ObserveDashboardUseCase
 import kotlinx.coroutines.CancellationException
@@ -89,7 +99,7 @@ fun DashboardScreen(state: DashboardUiState) {
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item {
-                Text("Dashboard", style = MaterialTheme.typography.headlineSmall)
+                Text(stringResource(R.string.dashboard_title), style = MaterialTheme.typography.headlineSmall)
             }
 
             state.snapshot?.let { snapshot ->
@@ -119,32 +129,48 @@ fun DashboardScreen(state: DashboardUiState) {
 
 @Composable
 private fun CalorieCard(snapshot: DashboardSnapshot) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)),
+    ) {
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("Calories", style = MaterialTheme.typography.titleMedium)
-            Text("Target: ${snapshot.kcalTarget.format1()}", modifier = Modifier.testTag("dashboard_kcal_target"))
-            Text("Intake: ${snapshot.kcalIntake.format1()}", modifier = Modifier.testTag("dashboard_kcal_intake"))
-            Text("Burned: ${snapshot.kcalBurned.format1()}", modifier = Modifier.testTag("dashboard_kcal_burned"))
-            Text("Remaining: ${snapshot.kcalRemaining.format1()}", modifier = Modifier.testTag("dashboard_kcal_remaining"))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(Icons.Filled.LocalFireDepartment, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                Text(stringResource(R.string.dashboard_calories), style = MaterialTheme.typography.titleMedium)
+            }
+            Text(stringResource(R.string.dashboard_target, snapshot.kcalTarget), modifier = Modifier.testTag("dashboard_kcal_target"))
+            Text(stringResource(R.string.dashboard_intake, snapshot.kcalIntake), modifier = Modifier.testTag("dashboard_kcal_intake"))
+            Text(stringResource(R.string.dashboard_burned, snapshot.kcalBurned), modifier = Modifier.testTag("dashboard_kcal_burned"))
+            Text(
+                stringResource(R.string.dashboard_remaining, snapshot.kcalRemaining),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.testTag("dashboard_kcal_remaining"),
+            )
         }
     }
 }
 
 @Composable
 private fun MacroCard(snapshot: DashboardSnapshot) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)),
+    ) {
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Macros", style = MaterialTheme.typography.titleMedium)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(Icons.Filled.PieChart, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary)
+                Text(stringResource(R.string.dashboard_macros), style = MaterialTheme.typography.titleMedium)
+            }
             Text(
-                "Carbs: ${snapshot.carbGrams.format1()} g (${snapshot.carbPct}%)",
+                stringResource(R.string.dashboard_macro_carb, snapshot.carbGrams, snapshot.carbPct),
                 modifier = Modifier.testTag("dashboard_macro_carb"),
             )
             Text(
-                "Fat: ${snapshot.fatGrams.format1()} g (${snapshot.fatPct}%)",
+                stringResource(R.string.dashboard_macro_fat, snapshot.fatGrams, snapshot.fatPct),
                 modifier = Modifier.testTag("dashboard_macro_fat"),
             )
             Text(
-                "Protein: ${snapshot.proteinGrams.format1()} g (${snapshot.proteinPct}%)",
+                stringResource(R.string.dashboard_macro_protein, snapshot.proteinGrams, snapshot.proteinPct),
                 modifier = Modifier.testTag("dashboard_macro_protein"),
             )
         }
@@ -156,30 +182,34 @@ private fun FitnessWidgets(snapshot: DashboardSnapshot) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
             WidgetCard(
-                title = "Steps",
+                title = stringResource(R.string.dashboard_steps),
                 value = snapshot.steps.toString(),
                 tag = "dashboard_widget_steps",
                 modifier = Modifier.weight(1f),
+                icon = Icons.Filled.DirectionsWalk,
             )
             WidgetCard(
-                title = "Weight",
-                value = "${snapshot.latestWeightKg.format1()} kg",
+                title = stringResource(R.string.dashboard_weight),
+                value = stringResource(R.string.dashboard_weight_value, snapshot.latestWeightKg),
                 tag = "dashboard_widget_weight",
                 modifier = Modifier.weight(1f),
+                icon = Icons.Filled.MonitorWeight,
             )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
             WidgetCard(
-                title = "Exercise kcal",
+                title = stringResource(R.string.dashboard_exercise_kcal),
                 value = snapshot.activeKcal.format1(),
                 tag = "dashboard_widget_exercise_kcal",
                 modifier = Modifier.weight(1f),
+                icon = Icons.Filled.LocalFireDepartment,
             )
             WidgetCard(
-                title = "Workout min",
+                title = stringResource(R.string.dashboard_workout_min),
                 value = snapshot.workoutMinutes.toString(),
                 tag = "dashboard_widget_workout_minutes",
                 modifier = Modifier.weight(1f),
+                icon = Icons.Filled.Timer,
             )
         }
     }
@@ -190,10 +220,15 @@ private fun WidgetCard(
     title: String,
     value: String,
     tag: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
     modifier: Modifier = Modifier,
 ) {
-    Card(modifier = modifier) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+    ) {
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
             Text(title, style = MaterialTheme.typography.bodySmall)
             Text(value, style = MaterialTheme.typography.titleMedium, modifier = Modifier.testTag(tag))
         }

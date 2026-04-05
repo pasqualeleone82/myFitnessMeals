@@ -28,6 +28,8 @@ import com.myfitnessmeals.app.domain.usecase.DeleteNutritionOverrideUseCase
 import com.myfitnessmeals.app.domain.usecase.GetMealDaySnapshotUseCase
 import com.myfitnessmeals.app.domain.usecase.ObserveDashboardUseCase
 import com.myfitnessmeals.app.domain.usecase.ObserveHistoryUseCase
+import com.myfitnessmeals.app.domain.usecase.DeleteAllUserDataUseCase
+import com.myfitnessmeals.app.domain.usecase.ExportUserDataUseCase
 import com.myfitnessmeals.app.domain.usecase.SaveMealEntryUseCase
 import com.myfitnessmeals.app.domain.usecase.SaveNutritionOverrideUseCase
 import com.myfitnessmeals.app.domain.usecase.SearchFoodByBarcodeUseCase
@@ -162,8 +164,36 @@ class AppGraph(private val context: Context) {
         )
     }
 
+    val exportUserDataUseCase: ExportUserDataUseCase by lazy {
+        ExportUserDataUseCase(
+            appContext = context,
+            database = database,
+            settingsRepository = userSettingsRepository,
+        )
+    }
+
+    val deleteAllUserDataUseCase: DeleteAllUserDataUseCase by lazy {
+        DeleteAllUserDataUseCase(
+            database = database,
+            settingsRepository = userSettingsRepository,
+            providerConnectionRepository = providerConnectionRepository,
+            tokenStore = tokenStore,
+        )
+    }
+
     fun enqueueGarminAppOpenSync() {
-        val request = OneTimeWorkRequestBuilder<GarminSyncWorker>().build()
+        val request = OneTimeWorkRequestBuilder<GarminSyncWorker>()
+            .setBackoffCriteria(
+                androidx.work.BackoffPolicy.EXPONENTIAL,
+                30,
+                java.util.concurrent.TimeUnit.SECONDS,
+            )
+            .setConstraints(
+                androidx.work.Constraints.Builder()
+                    .setRequiredNetworkType(androidx.work.NetworkType.CONNECTED)
+                    .build()
+            )
+            .build()
         WorkManager.getInstance(context).enqueueUniqueWork(
             "garmin_app_open_sync",
             ExistingWorkPolicy.KEEP,

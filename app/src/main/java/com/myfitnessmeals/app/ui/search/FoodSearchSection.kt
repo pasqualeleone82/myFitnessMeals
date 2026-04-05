@@ -12,7 +12,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.myfitnessmeals.app.R
 
 @Composable
 fun FoodSearchSection(
@@ -24,12 +26,12 @@ fun FoodSearchSection(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text(text = "Search by text", style = MaterialTheme.typography.titleMedium)
+        Text(text = stringResource(R.string.search_by_text), style = MaterialTheme.typography.titleMedium)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedTextField(
                 value = query,
                 onValueChange = onQueryChanged,
-                label = { Text("Food name") },
+                label = { Text(stringResource(R.string.search_food_name)) },
                 modifier = Modifier
                     .weight(1f)
                     .testTag("meal_search_input"),
@@ -41,7 +43,7 @@ fun FoodSearchSection(
                     .padding(top = 4.dp)
                     .testTag("meal_search_button"),
             ) {
-                Text("Search")
+                Text(stringResource(R.string.search_action))
             }
         }
     }

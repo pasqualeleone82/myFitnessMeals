@@ -13,4 +13,10 @@ class LocalProviderConnectionRepository(
 
     suspend fun getConnection(provider: ProviderType): ProviderConnectionEntity? =
         providerConnectionDao.getByProvider(provider.name)
+
+    suspend fun getAllConnections(): List<ProviderConnectionEntity> = providerConnectionDao.getAll()
+
+    suspend fun deleteAllConnections() {
+        providerConnectionDao.deleteAll()
+    }
 }

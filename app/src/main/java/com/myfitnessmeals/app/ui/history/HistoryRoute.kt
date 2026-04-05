@@ -16,11 +16,13 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.myfitnessmeals.app.AppGraph
+import com.myfitnessmeals.app.R
 import com.myfitnessmeals.app.domain.usecase.HistoryDaySnapshot
 import com.myfitnessmeals.app.domain.usecase.ObserveHistoryUseCase
 import kotlinx.coroutines.CancellationException
@@ -132,7 +134,7 @@ fun HistoryScreen(
                 .testTag("history_screen"),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text("History", style = MaterialTheme.typography.headlineSmall)
+            Text(stringResource(R.string.history_title), style = MaterialTheme.typography.headlineSmall)
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                 Button(
@@ -142,7 +144,7 @@ fun HistoryScreen(
                         .weight(1f)
                         .testTag("history_prev_button"),
                 ) {
-                    Text("Previous")
+                    Text(stringResource(R.string.history_previous))
                 }
                 Button(
                     onClick = onNext,
@@ -151,7 +153,7 @@ fun HistoryScreen(
                         .weight(1f)
                         .testTag("history_next_button"),
                 ) {
-                    Text("Next")
+                    Text(stringResource(R.string.history_next))
                 }
             }
 
@@ -170,7 +172,7 @@ fun HistoryScreen(
                 }
             }
 
-            Text("Showing last 90 days", modifier = Modifier.testTag("history_range_label"))
+            Text(stringResource(R.string.history_showing_range), modifier = Modifier.testTag("history_range_label"))
 
             state.errorMessage?.let { message ->
                 Text(

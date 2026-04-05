@@ -29,4 +29,6 @@ interface UserSettingsRepository {
     fun getSettings(): UserSettings
 
     fun saveSettings(settings: UserSettings)
+
+    fun clearAll()
 }

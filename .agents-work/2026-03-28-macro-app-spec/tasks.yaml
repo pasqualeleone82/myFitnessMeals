@@ -8,9 +8,9 @@ project:
     - "Performance thresholds p95 documented and verified"
 
 handoff:
-  paused_at: "2026-04-02T03:55:00Z"
-  resume_from_task_id: "T-009"
-  next_ready_task_id: "T-009"
+  paused_at: "2026-04-05T23:20:00Z"
+  resume_from_task_id: "T-008"
+  next_ready_task_id: "T-008"
   status_summary:
     - "T-001 implementato"
     - "T-002 completed dopo gate review+QA+integration"
@@ -23,13 +23,21 @@ handoff:
     - "T-014 completed: OFF text-search Nutella-like test validato con suite repository verde"
     - "T-015 completed: camera scan con fallback manuale + opzione tema System/Light/Dark persistente in settings"
     - "T-008 implemented: Garmin connect/disconnect/sync app-open+manual con token store cifrato e stato provider in settings"
-    - "T-009 implemented: UX errori OFF con messaggi consistenti e retry esplicito non bloccante nel flusso meal"
+    - "T-009 completed: UX errori OFF con messaggi consistenti e retry esplicito non bloccante nel flusso meal"
+    - "T-011 implemented: Privacy data rights con export JSON locale e delete-all con conferma esplicita in Settings"
+    - "T-012 completed: gate test/lint verdi e report test consolidato"
+    - "T-013 completed: README aggiornato, runbook operativo e release checklist creati"
+    - "CR UI completed: dashboard come home, bottom navigation a 4 tab, FAB centrale + menu rapido add/scan, dialog conferma uscita"
+    - "i18n introdotta: risorse EN/IT in values/strings.xml e values-it/strings.xml con wiring stringResource nelle schermate principali"
+    - "Meal logging UX completed: unita porzione a chip (g/ml/serving) e quantita numerica decimale con normalizzazione . / ,"
+    - "connectedDebugAndroidTest rieseguito: BUILD SUCCESSFUL (13/13)"
+    - "APK debug rigenerata: app/build/outputs/apk/debug/app-debug.apk"
   first_commands_next_session:
     - "./gradlew --no-daemon test"
     - "./gradlew --no-daemon lint"
     - "./gradlew --no-daemon tasks"
   first_operational_step:
-    - "Eseguire validazione manuale T-009 su timeout OFF (messaggio + retry) e promuovere a completed"
+    - "Completare validazione manuale T-008 su device reale (connect/sync/disconnect Garmin)"
 
 tasks:
   - id: T-001
@@ -308,7 +316,7 @@ tasks:
       - "Retry/backoff sync operativo"
 
   - id: T-009
-    status: implemented
+    status: completed
     type: fix
     title: "Harden offline and error UX"
     depends_on:
@@ -368,7 +376,7 @@ tasks:
       - "Redaction PII attiva nei log"
 
   - id: T-011
-    status: not-started
+    status: implemented
     type: feat
     title: "Implement privacy data rights"
     depends_on:
@@ -399,7 +407,7 @@ tasks:
       - "Post-delete nessun dato locale residuo"
 
   - id: T-012
-    status: not-started
+    status: completed
     type: test
     title: "Execute functional and NFR tests"
     depends_on:
@@ -435,7 +443,7 @@ tasks:
       - "Nessun blocker aperto"
 
   - id: T-013
-    status: not-started
+    status: completed
     type: docs
     title: "Finalize docs and release readiness"
     depends_on:

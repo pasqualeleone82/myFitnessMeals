@@ -25,4 +25,7 @@ interface DailySummaryDao {
         startDateInclusive: String,
         endDateInclusive: String,
     ): List<DailySummaryEntity>
+
+    @Query("SELECT * FROM daily_summary ORDER BY local_date DESC")
+    suspend fun getAll(): List<DailySummaryEntity>
 }

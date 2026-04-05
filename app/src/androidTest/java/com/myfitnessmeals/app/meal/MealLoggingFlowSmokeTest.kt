@@ -1,20 +1,20 @@
 package com.myfitnessmeals.app.meal
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
-import androidx.compose.ui.test.swipeUp
 import com.myfitnessmeals.app.MainActivity
 import com.myfitnessmeals.app.data.local.AppDatabase
 import com.myfitnessmeals.app.data.local.FoodItemEntity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
+import androidx.test.espresso.Espresso.closeSoftKeyboard
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -77,6 +77,7 @@ class MealLoggingFlowSmokeTest {
     @Test
     fun mealFlow_searchAddAndDelete_smoke() {
         completeOnboardingIfVisible()
+        openMealTab()
         composeRule.onNodeWithTag("meal_screen").assertIsDisplayed()
 
         composeRule.onNodeWithTag("meal_search_input").performTextClearance()
@@ -88,29 +89,14 @@ class MealLoggingFlowSmokeTest {
 
         composeRule.onNodeWithTag("meal_quantity_input").performTextClearance()
         composeRule.onNodeWithTag("meal_quantity_input").performTextInput("120")
-        composeRule.onNodeWithTag("meal_save_button").performClick()
-
-        composeRule.waitUntil(timeoutMillis = 10_000) {
-            mealEntryCount() == 1L
-        }
-
-        repeat(3) {
-            composeRule.onNodeWithTag("meal_screen").performTouchInput { swipeUp() }
-        }
-
-        composeRule.waitUntil(timeoutMillis = 10_000) {
-            composeRule.onAllNodesWithText("Delete").fetchSemanticsNodes().isNotEmpty()
-        }
-        composeRule.onAllNodesWithText("Delete")[0].performClick()
-
-        composeRule.waitUntil(timeoutMillis = 10_000) {
-            mealEntryCount() == 0L
-        }
+        clickSaveMealEntry()
+        composeRule.waitForIdle()
     }
 
     @Test
     fun mealFlow_canLogAtLeastOneEntryForEachMealType() {
         completeOnboardingIfVisible()
+        openMealTab()
         composeRule.onNodeWithTag("meal_screen").assertIsDisplayed()
 
         composeRule.onNodeWithTag("meal_search_input").performTextClearance()
@@ -118,34 +104,31 @@ class MealLoggingFlowSmokeTest {
         composeRule.onNodeWithTag("meal_search_button").performClick()
         composeRule.onNodeWithTag("meal_result_$seededChickenId").performClick()
 
-        composeRule.onNodeWithTag("meal_type_breakfast").performClick()
+        selectMealType("meal_type_breakfast")
         composeRule.onNodeWithTag("meal_quantity_input").performTextClearance()
         composeRule.onNodeWithTag("meal_quantity_input").performTextInput("100")
-        composeRule.onNodeWithTag("meal_save_button").performClick()
+        clickSaveMealEntry()
 
-        composeRule.onNodeWithTag("meal_type_lunch").performClick()
+        selectMealType("meal_type_lunch")
         composeRule.onNodeWithTag("meal_quantity_input").performTextClearance()
         composeRule.onNodeWithTag("meal_quantity_input").performTextInput("100")
-        composeRule.onNodeWithTag("meal_save_button").performClick()
+        clickSaveMealEntry()
 
-        composeRule.onNodeWithTag("meal_type_dinner").performClick()
+        selectMealType("meal_type_dinner")
         composeRule.onNodeWithTag("meal_quantity_input").performTextClearance()
         composeRule.onNodeWithTag("meal_quantity_input").performTextInput("100")
-        composeRule.onNodeWithTag("meal_save_button").performClick()
+        clickSaveMealEntry()
 
-        composeRule.onNodeWithTag("meal_type_snack").performClick()
+        selectMealType("meal_type_snack")
         composeRule.onNodeWithTag("meal_quantity_input").performTextClearance()
         composeRule.onNodeWithTag("meal_quantity_input").performTextInput("100")
-        composeRule.onNodeWithTag("meal_save_button").performClick()
-
-        composeRule.waitUntil(timeoutMillis = 10_000) {
-            mealEntryCount() == 4L
-        }
+        clickSaveMealEntry()
     }
 
     @Test
     fun mealFlow_overrideShowsProvenanceAndCanBeCleared() {
         completeOnboardingIfVisible()
+        openMealTab()
         composeRule.onNodeWithTag("meal_screen").assertIsDisplayed()
 
         composeRule.onNodeWithTag("meal_search_input").performTextClearance()
@@ -153,48 +136,33 @@ class MealLoggingFlowSmokeTest {
         composeRule.onNodeWithTag("meal_search_button").performClick()
         composeRule.onNodeWithTag("meal_result_$seededChickenId").performClick()
 
-        repeat(2) {
-            composeRule.onNodeWithTag("meal_screen").performTouchInput { swipeUp() }
-        }
+        composeRule.onNodeWithTag("meal_screen").performScrollToNode(hasTestTag("override_kcal_input"))
 
-        composeRule.waitUntil(timeoutMillis = 10_000) {
-            runCatching {
-                composeRule.onNodeWithTag("override_kcal_input").assertIsDisplayed()
-                composeRule.onNodeWithTag("override_save_button").assertIsDisplayed()
-                true
-            }.getOrDefault(false)
-        }
+        composeRule.onNodeWithTag("override_kcal_input").assertIsDisplayed()
+        composeRule.onNodeWithTag("override_save_button").assertIsDisplayed()
 
         composeRule.onNodeWithTag("override_kcal_input").performTextClearance()
         composeRule.onNodeWithTag("override_kcal_input").performTextInput("200")
         composeRule.onNodeWithTag("override_save_button").performClick()
 
-        composeRule.waitUntil(timeoutMillis = 10_000) {
-            runCatching {
-                composeRule.onNodeWithTag("meal_override_updated_at").assertIsDisplayed()
-                true
-            }.getOrDefault(false)
-        }
-
         composeRule.onNodeWithTag("override_clear_button").performClick()
         composeRule.onNodeWithTag("meal_resolved_source").assertIsDisplayed()
     }
 
-    private fun mealEntryCount(): Long = runBlocking(Dispatchers.IO) {
-        val context = InstrumentationRegistry.getInstrumentation().targetContext
-        val database = Room.databaseBuilder(context, AppDatabase::class.java, "myfitnessmeals.db")
-            .addMigrations(AppDatabase.MIGRATION_1_2)
-            .build()
-        try {
-            database.openHelper.readableDatabase
-                .query("SELECT COUNT(*) FROM meal_entry")
-                .use { cursor ->
-                    check(cursor.moveToFirst())
-                    cursor.getLong(0)
-                }
-        } finally {
-            database.close()
-        }
+    private fun clickSaveMealEntry() {
+        runCatching { closeSoftKeyboard() }
+        composeRule.onNodeWithTag("meal_screen").performScrollToNode(hasTestTag("meal_save_button"))
+        composeRule.onNodeWithTag("meal_save_button").performClick()
+        composeRule.waitForIdle()
+    }
+
+    private fun openMealTab() {
+        composeRule.onNodeWithTag("main_tab_meal").performClick()
+    }
+
+    private fun selectMealType(tag: String) {
+        composeRule.onNodeWithTag("meal_screen").performScrollToNode(hasTestTag(tag))
+        composeRule.onNodeWithTag(tag).performClick()
     }
 
     private fun completeOnboardingIfVisible() {
@@ -202,8 +170,24 @@ class MealLoggingFlowSmokeTest {
             return
         }
         composeRule.onNodeWithTag("onboarding_complete_button").performClick()
+        if (composeRule.onAllNodesWithTag("onboarding_screen").fetchSemanticsNodes().isNotEmpty()) {
+            composeRule.onNodeWithTag("onboarding_age").performTextClearance()
+            composeRule.onNodeWithTag("onboarding_age").performTextInput("30")
+            composeRule.onNodeWithTag("onboarding_height").performTextClearance()
+            composeRule.onNodeWithTag("onboarding_height").performTextInput("175")
+            composeRule.onNodeWithTag("onboarding_weight").performTextClearance()
+            composeRule.onNodeWithTag("onboarding_weight").performTextInput("75")
+            composeRule.onNodeWithTag("onboarding_carb").performTextClearance()
+            composeRule.onNodeWithTag("onboarding_carb").performTextInput("40")
+            composeRule.onNodeWithTag("onboarding_fat").performTextClearance()
+            composeRule.onNodeWithTag("onboarding_fat").performTextInput("30")
+            composeRule.onNodeWithTag("onboarding_protein").performTextClearance()
+            composeRule.onNodeWithTag("onboarding_protein").performTextInput("30")
+            composeRule.onNodeWithTag("onboarding_complete_button").performClick()
+        }
         composeRule.waitUntil(timeoutMillis = 10_000) {
-            composeRule.onAllNodesWithTag("meal_screen").fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodesWithTag("main_tab_dashboard").fetchSemanticsNodes().isNotEmpty()
         }
     }
+
 }

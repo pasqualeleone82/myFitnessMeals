@@ -3,6 +3,7 @@ package com.myfitnessmeals.app.barcode
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -24,7 +25,7 @@ class BarcodeLookupSectionTest {
         var lookupClicks = 0
 
         composeRule.setContent {
-            var barcodeState by mutableStateOf("")
+            var barcodeState by remember { mutableStateOf("") }
             BarcodeLookupSection(
                 barcode = barcodeState,
                 showCameraPermissionFallback = true,
