@@ -1,9 +1,9 @@
 package com.myfitnessmeals.app
 
-import android.app.Activity
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -40,7 +40,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -111,7 +110,7 @@ private fun AppRoot(appGraph: AppGraph) {
         val mealViewModel: MealLoggingViewModel = viewModel(factory = MealLoggingViewModel.factory(appGraph))
         val dashboardViewModel: DashboardViewModel = viewModel(factory = DashboardViewModel.factory(appGraph))
         val historyViewModel: HistoryViewModel = viewModel(factory = HistoryViewModel.factory(appGraph))
-        val activity = LocalContext.current as? Activity
+        val activity = LocalActivity.current
 
         var tab by remember { mutableStateOf(MainTab.DASHBOARD) }
         var showExitDialog by remember { mutableStateOf(false) }
