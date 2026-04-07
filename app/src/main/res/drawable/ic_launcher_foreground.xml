@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Foreground for the adaptive launcher icon.
+    Viewport: 108 × 108 dp  |  Safe zone: 18–90 dp on each axis
+    Design: white three-tine fork (left-centre) + green herb sprig (upper-right)
+    Colour palette inspired by Mediterranean / Italian cuisine:
+      background  #E8650A  (paprika orange)
+      fork        #FFFFFF  (white)
+      herb        #81C784  (fresh-basil green)
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- ═══════════════════════════════════════════
+         FORK  (centred at x ≈ 46, safe zone y 22–88)
+         ═══════════════════════════════════════════ -->
+
+    <!-- Left tine (rounded top) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M36,54 L36,24.5 Q36,22 38.5,22 Q41,22 41,24.5 L41,54 Z" />
+
+    <!-- Middle tine (rounded top) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M44,54 L44,24.5 Q44,22 46.5,22 Q49,22 49,24.5 L49,54 Z" />
+
+    <!-- Right tine (rounded top) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M52,54 L52,24.5 Q52,22 54.5,22 Q57,22 57,24.5 L57,54 Z" />
+
+    <!-- Yoke – horizontal block joining all three tines -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M36,52 L57,52 L57,63 L36,63 Z" />
+
+    <!-- Taper from yoke width down to handle width -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M36,61 L57,61 L50,69 L43,69 Z" />
+
+    <!-- Handle (rounded bottom) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M43,67 L50,67 L50,84.5 Q50,88 46.5,88 Q43,88 43,84.5 Z" />
+
+    <!-- ═══════════════════════════════════════════
+         HERB SPRIG  (upper-right, x ≈ 70–86, y 22–54)
+         Three basil-style leaves on a short stem
+         ═══════════════════════════════════════════ -->
+
+    <!-- Stem -->
+    <path
+        android:strokeColor="#81C784"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:pathData="M76,54 L76,30" />
+
+    <!-- Lower-left leaf -->
+    <path
+        android:fillColor="#81C784"
+        android:pathData="M76,48 Q66,44 64,36 Q70,30 76,40 Z" />
+
+    <!-- Lower-right leaf -->
+    <path
+        android:fillColor="#81C784"
+        android:pathData="M76,48 Q86,44 88,36 Q82,30 76,40 Z" />
+
+    <!-- Upper leaf -->
+    <path
+        android:fillColor="#81C784"
+        android:pathData="M76,38 Q72,28 74,22 Q78,20 78,30 Z" />
+
+</vector>
