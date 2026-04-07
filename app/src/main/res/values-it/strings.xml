@@ -28,6 +28,10 @@
     <string name="meal_quantity_label">Quantità</string>
     <string name="meal_quantity_help">Solo numeri, separatore decimale: . o ,</string>
     <string name="meal_unit_label">Unità</string>
+    <string name="meal_operating_day">Giorno operativo: %1$s</string>
+    <string name="meal_previous_day">Giorno precedente</string>
+    <string name="meal_today">Oggi</string>
+    <string name="meal_next_day">Giorno successivo</string>
     <string name="meal_save_entry">Salva voce pasto</string>
     <string name="meal_override_title">Override nutrizionale</string>
     <string name="meal_override_kcal">kcal/100</string>

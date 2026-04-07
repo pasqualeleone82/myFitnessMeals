@@ -20,6 +20,7 @@ import com.myfitnessmeals.app.domain.usecase.SaveNutritionOverrideCommand
 import com.myfitnessmeals.app.domain.usecase.SaveNutritionOverrideUseCase
 import com.myfitnessmeals.app.domain.usecase.SearchFoodByBarcodeUseCase
 import com.myfitnessmeals.app.domain.usecase.SearchFoodsByTextUseCase
+import java.time.LocalDate
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,6 +30,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class MealLoggingUiState(
+    val selectedDate: String = LocalDate.now().toString(),
     val selectedMealType: MealType = MealType.BREAKFAST,
     val searchQuery: String = "",
     val barcodeQuery: String = "",
@@ -78,7 +80,28 @@ class MealLoggingViewModel(
 
     init {
         viewModelScope.launch {
-            refreshDay()
+            refreshDay(_uiState.value.selectedDate)
+        }
+    }
+
+    fun goToPreviousDay() {
+        val date = LocalDate.parse(_uiState.value.selectedDate).minusDays(1)
+        onSelectedDateChanged(date.toString())
+    }
+
+    fun goToNextDay() {
+        val date = LocalDate.parse(_uiState.value.selectedDate).plusDays(1)
+        onSelectedDateChanged(date.toString())
+    }
+
+    fun goToToday() {
+        onSelectedDateChanged(LocalDate.now().toString())
+    }
+
+    private fun onSelectedDateChanged(localDate: String) {
+        _uiState.update { it.copy(selectedDate = localDate, errorMessage = null) }
+        viewModelScope.launch {
+            refreshDay(localDate)
         }
     }
 
@@ -203,10 +226,11 @@ class MealLoggingViewModel(
                         food = selectedFood,
                         quantity = quantity,
                         unit = state.unitInput,
+                        localDate = state.selectedDate,
                     )
                 )
                 _uiState.update { it.copy(errorMessage = null) }
-                refreshDay()
+                refreshDay(state.selectedDate)
             } catch (error: IllegalArgumentException) {
                 _uiState.update { it.copy(errorMessage = error.message ?: "Invalid meal data") }
             }
@@ -311,9 +335,10 @@ class MealLoggingViewModel(
     }
 
     fun deleteEntry(entryId: Long) {
+        val localDate = _uiState.value.selectedDate
         viewModelScope.launch {
             deleteMealEntryUseCase(entryId)
-            refreshDay()
+            refreshDay(localDate)
         }
     }
 
@@ -422,8 +447,8 @@ class MealLoggingViewModel(
         }
     }
 
-    private suspend fun refreshDay() {
-        val snapshot = getMealDaySnapshotUseCase()
+    private suspend fun refreshDay(localDate: String) {
+        val snapshot = getMealDaySnapshotUseCase(localDate)
         _uiState.update {
             it.copy(
                 entries = snapshot.entries,

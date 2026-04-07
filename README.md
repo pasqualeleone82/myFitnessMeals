@@ -25,7 +25,15 @@ Bootstrap Android Kotlin per MVP macro-tracking.
 - Meal logging:
 	- Unita porzione selezionabile via chip (`g`, `ml`, `serving`).
 	- Quantita con input numerico decimale (supporto `.` e `,`).
+	- Selettore giorno operativo visibile (precedente/oggi/successivo) per scegliere esplicitamente la data del pasto.
 	- Miglioramenti visuali con icone e card colorate.
+
+## Bug fix - meal save/history sync
+- Root cause individuata: lo storico non veniva aggiornato sempre dopo il salvataggio pasti per stato tab stale.
+- Fix applicato:
+	- refresh di Dashboard/History al cambio tab.
+	- salvataggio pasto legato alla data operativa selezionata in Meal logging.
+	- snapshot meal/day caricato sulla data selezionata.
 
 ## Internationalization (IT/EN)
 - Introdotte risorse stringhe localizzate per inglese e italiano:

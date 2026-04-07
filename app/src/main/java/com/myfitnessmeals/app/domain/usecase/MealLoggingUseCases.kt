@@ -48,6 +48,7 @@ data class SaveMealEntryCommand(
     val food: MealFoodCandidate,
     val quantity: Double,
     val unit: String,
+    val localDate: String? = null,
 )
 
 data class SaveNutritionOverrideCommand(
@@ -298,7 +299,7 @@ class SaveMealEntryUseCase(
                 unit = command.unit,
             )
 
-            val localDate = nowDateProvider().toString()
+            val localDate = command.localDate ?: nowDateProvider().toString()
             val timezoneOffsetMin = nowOffsetProvider().totalSeconds / 60
 
             val entryId = diaryRepository.addMealEntry(
@@ -364,8 +365,7 @@ class GetMealDaySnapshotUseCase(
     private val foodRepository: LocalFoodRepository,
     private val nowDateProvider: () -> LocalDate = { LocalDate.now() },
 ) {
-    suspend operator fun invoke(): MealDaySnapshot {
-        val localDate = nowDateProvider().toString()
+    suspend operator fun invoke(localDate: String = nowDateProvider().toString()): MealDaySnapshot {
         val entries = diaryRepository.getMealEntries(localDate)
         val summary = diaryRepository.getDailySummary(localDate)
 

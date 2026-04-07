@@ -98,6 +98,13 @@
    - Wiring `stringResource(...)` esteso a Main/Meal/Dashboard/History/Settings
    - Test instrumentation rieseguiti e verdi: `./gradlew --no-daemon :app:connectedDebugAndroidTest` -> BUILD SUCCESSFUL (13/13)
    - APK rigenerata: `app/build/outputs/apk/debug/app-debug.apk` (verificata presente)
+- Bug fix request (storico pasti) - 2026-04-05:
+   - root cause: stato history/dashboard non refreshato in modo affidabile al rientro sulla tab dopo salvataggi meal
+   - fix: refresh esplicito su cambio tab in `MainActivity` per Dashboard/History
+   - enhancement UX: aggiunto giorno operativo in Meal logging con controlli `giorno precedente / oggi / giorno successivo`
+   - salvataggio pasti agganciato alla data selezionata (non solo data corrente implicita)
+   - validazione build: `./gradlew --no-daemon :app:assembleDebug` -> BUILD SUCCESSFUL
+   - nota validazione UI: tentativo connected test nel pass corrente fallito per assenza device connesso (`No connected devices`)
 
 ## Nota ambiente
 - Device fisico ancora `unauthorized`; test strumentati coperti da emulatore locale.

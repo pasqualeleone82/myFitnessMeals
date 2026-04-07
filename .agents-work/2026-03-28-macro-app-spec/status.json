@@ -76,11 +76,14 @@
     "i18n EN/IT introdotta con risorse strings.xml e values-it/strings.xml e wiring stringResource su Main/Meal/Dashboard/History/Settings",
     "Meal UX completed: unit selector a chip (g/ml/serving), quantita decimale con normalizzazione . e ,",
     "Gate finale confermato: ./gradlew --no-daemon :app:connectedDebugAndroidTest -> BUILD SUCCESSFUL (13/13)",
-    "APK debug aggiornata disponibile in app/build/outputs/apk/debug/app-debug.apk"
+    "APK debug aggiornata disponibile in app/build/outputs/apk/debug/app-debug.apk",
+    "Bug fix storico: refresh Dashboard/History forzato su cambio tab per evitare dati stale dopo save meal",
+    "Meal logging: giorno operativo esplicito con selector prev/oggi/next e save legato alla data selezionata",
+    "Validazione corrente: ./gradlew --no-daemon :app:assembleDebug green; connected tests bloccati da assenza device"
   ],
   "known_issues": [
     "Warning non bloccante AGP: compileSdk=35 oltre il livello ufficialmente testato da plugin; valutare android.suppressUnsupportedCompileSdk=35 se il warning disturba la CI",
-    "Device fisico ancora unauthorized; gate connectedAndroidTest attualmente coperto tramite emulatore locale mfm_api35"
+    "Nell'ultimo pass non era presente alcun device connesso: connectedDebugAndroidTest non eseguibile finche non si collega emulatore/device"
   ],
   "user_decisions": [
     {
@@ -265,5 +268,5 @@
     }
   },
   "last_ci_result": "green",
-  "last_update": "2026-04-05T23:20:00Z"
+  "last_update": "2026-04-05T23:55:00Z"
 }

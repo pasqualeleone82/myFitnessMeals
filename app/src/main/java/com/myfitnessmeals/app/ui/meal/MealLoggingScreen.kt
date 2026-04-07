@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Fastfood
 import androidx.compose.material.icons.filled.Scale
 import androidx.compose.material.icons.filled.Search
@@ -97,6 +98,9 @@ fun MealLoggingRoute(
         onBarcodeLookupClicked = viewModel::searchByBarcode,
         onBarcodeScanClicked = openScanner,
         onMealTypeSelected = viewModel::onMealTypeSelected,
+        onPreviousDayClicked = viewModel::goToPreviousDay,
+        onNextDayClicked = viewModel::goToNextDay,
+        onTodayClicked = viewModel::goToToday,
         onFoodSelected = viewModel::onFoodSelected,
         onQuantityChanged = viewModel::onQuantityChanged,
         onUnitChanged = viewModel::onUnitChanged,
@@ -137,6 +141,9 @@ fun MealLoggingScreen(
     onBarcodeLookupClicked: () -> Unit,
     onBarcodeScanClicked: () -> Unit,
     onMealTypeSelected: (MealType) -> Unit,
+    onPreviousDayClicked: () -> Unit,
+    onNextDayClicked: () -> Unit,
+    onTodayClicked: () -> Unit,
     onFoodSelected: (com.myfitnessmeals.app.domain.usecase.MealFoodCandidate) -> Unit,
     onQuantityChanged: (String) -> Unit,
     onUnitChanged: (String) -> Unit,
@@ -168,6 +175,15 @@ fun MealLoggingScreen(
                     )
                     Text(text = stringResource(R.string.meal_logging_title), style = MaterialTheme.typography.headlineSmall)
                 }
+            }
+
+            item {
+                DateSelectorSection(
+                    selectedDate = state.selectedDate,
+                    onPreviousDayClicked = onPreviousDayClicked,
+                    onNextDayClicked = onNextDayClicked,
+                    onTodayClicked = onTodayClicked,
+                )
             }
 
             item {
@@ -321,6 +337,41 @@ fun MealLoggingScreen(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DateSelectorSection(
+    selectedDate: String,
+    onPreviousDayClicked: () -> Unit,
+    onNextDayClicked: () -> Unit,
+    onTodayClicked: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Icon(
+                imageVector = Icons.Filled.CalendarMonth,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+            )
+            Text(
+                text = stringResource(R.string.meal_operating_day, selectedDate),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.testTag("meal_selected_date"),
+            )
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            Button(onClick = onPreviousDayClicked, modifier = Modifier.weight(1f).testTag("meal_prev_day")) {
+                Text(stringResource(R.string.meal_previous_day))
+            }
+            Button(onClick = onTodayClicked, modifier = Modifier.weight(1f).testTag("meal_today_day")) {
+                Text(stringResource(R.string.meal_today))
+            }
+            Button(onClick = onNextDayClicked, modifier = Modifier.weight(1f).testTag("meal_next_day")) {
+                Text(stringResource(R.string.meal_next_day))
             }
         }
     }

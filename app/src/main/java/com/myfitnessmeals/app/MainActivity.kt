@@ -117,6 +117,16 @@ private fun AppRoot(appGraph: AppGraph) {
         var showExitDialog by remember { mutableStateOf(false) }
         var scanRequestKey by remember { mutableStateOf(0L) }
 
+        LaunchedEffect(tab) {
+            when (tab) {
+                MainTab.DASHBOARD -> dashboardViewModel.refresh()
+                MainTab.HISTORY -> historyViewModel.refresh()
+                MainTab.MEAL,
+                MainTab.SETTINGS,
+                -> Unit
+            }
+        }
+
         BackHandler {
             showExitDialog = true
         }

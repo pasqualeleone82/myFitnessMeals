@@ -32,6 +32,9 @@ handoff:
     - "Meal logging UX completed: unita porzione a chip (g/ml/serving) e quantita numerica decimale con normalizzazione . / ,"
     - "connectedDebugAndroidTest rieseguito: BUILD SUCCESSFUL (13/13)"
     - "APK debug rigenerata: app/build/outputs/apk/debug/app-debug.apk"
+    - "Bug fix completato: storico non aggiornato dopo save pasti (refresh Dashboard/History al cambio tab)"
+    - "Meal logging aggiornato con giorno operativo esplicito e salvataggio pasti sulla data selezionata"
+    - "Validazione locale: assembleDebug green; connected test non rieseguiti in ultimo pass per assenza device connesso"
   first_commands_next_session:
     - "./gradlew --no-daemon test"
     - "./gradlew --no-daemon lint"
