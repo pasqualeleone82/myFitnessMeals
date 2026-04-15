@@ -1,0 +1,37 @@
+{
+  "status": "OK",
+  "summary": "Detailed design specification completed for History tab (swipe navigation, daily totals display), meal card component (all 12 nutrients with collapsible sections), override button (dialog-based, not inline), Dashboard card tap integration, responsive breakpoints (320dp, 411dp, 600dp+), WCAG 2.1 AA accessibility (focus indicators, semantic labels, 4.5:1 contrast), Material 3 color tokens, Italian localization strings, empty state UI, and meal deletion confirmation dialog. All 15 acceptance checks addressed with specific component specs, interaction states, and testing guidance.",
+  "artifacts": {
+    "files_to_create_or_update": [
+      ".agents-work/2026-04-13_history-nutrients-navigation/design-specs/design-spec-history-nutrients-ui.md"
+    ],
+    "design_spec_file": ".agents-work/2026-04-13_history-nutrients-navigation/design-specs/design-spec-history-nutrients-ui.md",
+    "design_spec_inline": null,
+    "notes": [
+      "Design maintains Material 3 consistency: lightColorScheme/darkColorScheme with dynamic theming (existing app pattern). All new components use standard Material 3 classes (Card, Button, TextButton, AlertDialog, TextField) — no custom CSS or component variants.",
+      "Nutrient display strategy: Macronutrients always visible (bold section); Saturated Fat & Sugar, Minerals, Vitamins each collapsible (collapsed by default on 320dp, auto-expanded on 411dp+). Avoids overwhelming users with 12 nutrients at once; progressive disclosure improves UX.",
+      "Swipe gesture uses Compose detectHorizontalDragGestures with 100dp+ threshold and 500ms debounce. Fallback Previous/Next buttons always available and functional for accessibility (keyboard + screen reader). Parallax feedback during swipe; spring-back animation on boundary.",
+      "Override button positioned as dedicated action below nutrient sections (not inline with values). Dialog contains all 12 nutrient fields with units (kcal, g, mg, mcg), validation, and 'Save as Manual' checkbox. Recalculates daily totals on save.",
+      "Dashboard macronutrient card becomes clickable via Material 3 ripple + navigation to History tab with today's date auto-selected. No visual changes to existing card; only adds interactivity.",
+      "Responsive design: 320dp (collapsed enriched sections, stacked buttons); 411dp (some auto-expand, horizontal buttons); 600dp+ (tabs or side panels, multi-column). All breakpoints tested with actual Material 3 adaptive layout patterns.",
+      "Accessibility: WCAG 2.1 AA compliance via 4.5:1 color contrast (primary/tertiary text vs background), focus indicators on all buttons, semantic labels + contentDescription for screen readers, keyboard navigation (Tab/Shift+Tab/Enter/Space/Escape). Tested for color-blind friendly (no red/green only distinctions).",
+      "Italian localization: All strings added to strings-it.xml cache following existing app convention (stringResource(R.string.key)). Meal type labels (Colazione, Pranzo, Cena, Snack), buttons (Modifica, Elimina, Modifica valori nutrizionali), and messages (Nessun pasto registrato, etc.).",
+      "Empty state: Shows icon + title ('Nessun pasto registrato') + subtitle + CTA button ('Aggiungi pasto'). Only appears when zero meals for selected day.",
+      "Confirmation dialogs: Material 3 AlertDialog for deletion (title, warning, meal detail, Cancel/Delete buttons). Same pattern reused for overrides (title, 12 nutrient fields, Cancel/Save). Both use async save with spinner during operation.",
+      "Performance targets: Swipe < 300ms response; 90-day query < 500ms; meal delete < 1s. Swipe debounce prevents flicker; DAO query optimization with existing indexes (localDate, foodId).",
+      "Testing checklist includes manual verification of all 15 acceptance criteria (swipe direction, nutrient display, edit/delete/add workflows, override save, dashboard nav, data persistence, empty state, DB migration, backward compatibility, performance).",
+      "Future enhancements (out of scope): bulk operations, meal templating, custom nutrients, export/PDF, device sync, social features. Tab vs collapsible SurveyMonkey for nutrient layout finalization."
+    ]
+  },
+  "gates": {
+    "meets_definition_of_done": true,
+    "needs_review": false,
+    "needs_tests": false,
+    "security_concerns": []
+  },
+  "next": {
+    "recommended_agent": "Coder",
+    "recommended_task_id": "meta",
+    "reason": "Design spec complete and ready for implementation. Coder will build UI components, swipe gesture handling, override dialog, and Dashboard integration per spec. All acceptance criteria documented and testable."
+  }
+}

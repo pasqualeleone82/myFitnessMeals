@@ -1,0 +1,128 @@
+{
+  "current_state": "IMPLEMENT_LOOP",
+  "session": "2026-04-07_cr-profilo-ui-macro",
+  "assumptions": [
+    "Existing GoalComputationService formulas remain authoritative for calorie estimation.",
+    "Macro percent values must remain numeric in storage; percent symbol is presentation-only.",
+    "Plus button misalignment is resolved within MainActivity scaffold without navigation refactor.",
+    "T-001: onboarding estimate reactivity is driven by profile inputs (age/height/weight/sex/activity/goal), while macro inputs remain independent.",
+    "FIX_REVIEW T-001: onboarding estimate text must round to nearest integer for display, not truncate decimals.",
+    "FIX_TESTS T-001: locale rendering evidence is satisfied via onboarding UI instrumentation tests that assert EN/IT unit strings and estimate placement before CTA."
+    ,"Environment update: Android emulator mfm_api35 is now running and visible via adb as emulator-5554.",
+    "T-002: FAB optical alignment should be corrected by tuning shared scaffold constants for center gap width and FAB touch container, without changing tabs or quick-add behavior.",
+    "T-002 follow-up: FAB alignment instrumentation should measure the tagged center gap directly and validate portrait/landscape behavior, with compact-width checks gated by runtime viewport width.",
+    "T-002 QA evidence: MainFabAlignmentUiTest now executes all 3 cases with skipped=0 on emulator, including compact-width path.",
+    "Meta hotfix: restoring tab responsiveness should be solved by removing overlapping floating center FAB and placing quick-add inline inside the bottom navigation.",
+    "Meta reviewer-note follow-up: instrumentation coverage should explicitly verify quick-add inline menu actions (add food and scan barcode) and compact-width Italian settings label single-line behavior without changing production semantics.",
+    "FIX_BUILD reproducibility: connectedDebugAndroidTest targeted hotfix suites pass consistently on emulator mfm_api35 with no resultsDir MD5/access failure observed.",
+    "FIX_TESTS meta: MainFabAlignmentUiTest landscape flake stabilized by replacing orientation waitForIdle with orientation+node readiness waits; command passed twice consecutively on emulator mfm_api35.",
+    "T-007: Settings profile editing reuses existing height and sex from persisted settings while exposing editable age, weight, activity level, and goal type with live target recomputation.",
+    "T-007 review blockers fix scope is limited to README behavior documentation and focused unit coverage for settings edit/recompute/save/reload persistence flow."
+  ],
+  "user_decisions": [
+    {
+      "decision_id": "UD-APPROVE-DESIGN",
+      "question": "Approvi design e architettura per CR profilo+calorie, allineamento FAB e fix %% macro?",
+      "status": "answered",
+      "answer": "approved: procedi",
+      "asked_at": "2026-04-07T13:45:00Z",
+      "resolved_at": "2026-04-07T13:47:00Z",
+      "state_context": "APPROVE_DESIGN",
+      "resolution_reason": null
+    },
+    {
+      "decision_id": "UD-REVIEW-STRATEGY",
+      "question": "Preferisci review/QA/security per-batch o single-final?",
+      "status": "answered",
+      "answer": "per-batch",
+      "asked_at": "2026-04-07T13:50:00Z",
+      "resolved_at": "2026-04-07T13:51:00Z",
+      "state_context": "REVIEW_STRATEGY",
+      "resolution_reason": null
+    },
+    {
+      "decision_id": "UD-1",
+      "question": "Come gestiamo il blocco QA per T-001 dovuto a mancanza emulator/device per connectedDebugAndroidTest?",
+      "status": "answered",
+      "answer": "block-until-device",
+      "asked_at": "2026-04-07T14:20:00Z",
+      "resolved_at": "2026-04-07T14:21:00Z",
+      "state_context": "IMPLEMENT_LOOP",
+      "resolution_reason": null
+    },
+    {
+      "decision_id": "UD-2",
+      "question": "Applicare ora le note non bloccanti della review T-002 sui test FAB o procedere al T-003?",
+      "status": "answered",
+      "answer": "fix-now",
+      "asked_at": "2026-04-08T12:50:00Z",
+      "resolved_at": "2026-04-08T12:51:00Z",
+      "state_context": "IMPLEMENT_LOOP",
+      "resolution_reason": null
+    },
+    {
+      "decision_id": "UD-3",
+      "question": "La review del hotfix e passata ma con 2 note non bloccanti sui test (quick-add inline e non-wrap etichetta Impostazioni). Le applichiamo ora?",
+      "status": "answered",
+      "answer": "fix-now",
+      "asked_at": "2026-04-08T16:55:00Z",
+      "resolved_at": "2026-04-08T16:56:00Z",
+      "state_context": "IMPLEMENT_LOOP",
+      "resolution_reason": null
+    },
+    {
+      "decision_id": "UD-4",
+      "question": "Posso eseguire adesso i due comandi connectedDebugAndroidTest obbligatori (AC2 e AC3) per chiudere il gate QA del hotfix?",
+      "status": "answered",
+      "answer": "run-now",
+      "asked_at": "2026-04-08T18:10:00Z",
+      "resolved_at": "2026-04-08T18:11:00Z",
+      "state_context": "FIX_TESTS",
+      "resolution_reason": null
+    },
+    {
+      "decision_id": "UD-5",
+      "question": "Per chiudere QA serve evidenza deterministica AC1/AC2: preferisci autorizzare ora l'esecuzione completa o chiudere con deroga esplicita?",
+      "status": "answered",
+      "answer": "waive-deterministic-evidence",
+      "asked_at": "2026-04-08T18:12:00Z",
+      "resolved_at": "2026-04-08T18:13:00Z",
+      "state_context": "FIX_TESTS",
+      "resolution_reason": "User explicitly chose to close with waiver instead of re-running full deterministic acceptance command set."
+    }
+  ],
+  "gate_tracking": {
+    "APPROVE_DESIGN": {
+      "correction_status": "none",
+      "last_correction_dispatch": {
+        "agent": null,
+        "task_id": null,
+        "at": null
+      }
+    }
+  },
+  "runtime_flags": {
+    "copilot_instructions_exists": false,
+    "copilot_checked_at": "2026-04-07T00:00:00Z"
+  },
+  "retry_counts": {
+    "T-001": {
+      "FIX_REVIEW": 1,
+      "FIX_TESTS": 1,
+      "FIX_SECURITY": 0,
+      "FIX_BUILD": 0
+    },
+    "meta": {
+      "FIX_REVIEW": 1,
+      "FIX_TESTS": 1,
+      "FIX_SECURITY": 0,
+      "FIX_BUILD": 1
+    }
+  },
+  "known_issues": [
+    "MainFabAlignmentUiTest intermittently fails in landscape with Espresso AppNotIdleException; requires test stabilization.",
+    "QA deterministic evidence for AC1/AC2 was waived by user decision UD-5; latest deterministic artifacts in this closure step cover AC3 smoke suites."
+  ],
+  "last_ci_result": "green",
+  "last_update": "2026-04-08T13:30:11Z"
+}

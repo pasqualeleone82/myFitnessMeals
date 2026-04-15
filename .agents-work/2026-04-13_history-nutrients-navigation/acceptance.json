@@ -1,0 +1,157 @@
+{
+  "acceptance_criteria": [
+    {
+      "id": "AC-001",
+      "description": "History tab visible in bottom navigation bar",
+      "verify": [
+        "manual: Launch app post-onboarding, observe NavigationBar contains 4 items: Dashboard, Meal, History, Settings with Icons",
+        "manual: History icon is Icons.Filled.History or similar; label is 'Storico' (Italian)"
+      ]
+    },
+    {
+      "id": "AC-002",
+      "description": "Swipe right on History tab advances to previous day",
+      "verify": [
+        "manual: Open History tab; current day shown (e.g., '2026-04-13')",
+        "manual: Swipe right (drag from right to left on screen); UI updates to show previous day (e.g., '2026-04-12')",
+        "manual: Repeat swipe; continues backward",
+        "manual: At oldest available day, swipe has no effect (boundary handled gracefully)"
+      ]
+    },
+    {
+      "id": "AC-003",
+      "description": "Swipe left on History tab advances to next day",
+      "verify": [
+        "manual: From any history day, swipe left (drag from left to right on screen); UI updates to next day",
+        "manual: Swipe left repeatedly; progresses forward in time",
+        "manual: Reach today; swipe left no effect (current day boundary)"
+      ]
+    },
+    {
+      "id": "AC-004",
+      "description": "Daily meals list shows meal name, portion, unit, and nutrients (kcal, protein, carbs, fat, saturated fat, sugar, minerals, vitamins)",
+      "verify": [
+        "manual: Select a day with >= 1 logged meal",
+        "manual: Observe meal entry card containing: food name, brand (if available), meal type icon/label (Colazione/Pranzo/Cena/Snack in Italian)",
+        "manual: Portion displayed as '150 g' or similar (quantity + unit)",
+        "manual: Nutrients displayed: kcal, protein (g), carbs (g), fat (g), saturated fat (g), sugar (g)",
+        "manual: Minerals section visible (Ca, Fe, Mg, Zn in mg/mcg)",
+        "manual: Vitamins section visible (Vit C, Vit D, B12)",
+        "manual: All values shown with 1 decimal place (e.g., '123.4 kcal')",
+        "manual: Null/missing nutrients display as '—' or 'N/A'"
+      ]
+    },
+    {
+      "id": "AC-005",
+      "description": "Edit meal launches meal logging with pre-filled values",
+      "verify": [
+        "manual: Tap 'Edit' or pencil icon on meal entry",
+        "manual: MealLoggingScreen opens with date pre-set to meal's date",
+        "manual: All fields pre-populated: food name, quantity, unit, meal type",
+        "manual: Existing nutrient values visible (base 4)",
+        "manual: User can modify values; save returns to History tab and updates daily totals"
+      ]
+    },
+    {
+      "id": "AC-006",
+      "description": "Delete meal removes from daily history with confirmation",
+      "verify": [
+        "manual: Tap delete button/icon on meal entry",
+        "manual: Confirmation dialog appears with message 'Eliminare questo pasto?' (Delete this meal?) and Cancel/Delete buttons",
+        "manual: Tap Delete; meal vanishes from list, daily totals recalculated (kcal, macros, enriched nutrients all update)",
+        "manual: Tap Cancel; meal remains, no change"
+      ]
+    },
+    {
+      "id": "AC-007",
+      "description": "Add meal from History tab opens meal logging",
+      "verify": [
+        "manual: History tab open, select any day",
+        "manual: Tap 'Add meal' button (or FAB) in History tab",
+        "manual: MealLoggingScreen opens with date pre-set to selected date (not today)",
+        "manual: Complete meal logging; save returns to History tab with new meal added to totals"
+      ]
+    },
+    {
+      "id": "AC-008",
+      "description": "Optional override button appears (not inline in meal card)",
+      "verify": [
+        "manual: Observe each meal entry card",
+        "manual: A dedicated button labeled 'Modifica valori nutrizionali' (Edit nutrient values) or 'Sovrascrivi' (Override) present",
+        "manual: Button positioned below or to the side of meal card (not overlapping nutrient text)",
+        "manual: Tap button; dialog opens with editable fields for all 12 nutrients (kcal, protein, carbs, fat, saturated fat, sugar, Fe, Ca, Mg, Zn, Vit C, Vit D, B12)",
+        "manual: Modify values and save; override reflected in meal card immediately",
+        "manual: Nutrient source indicator changes from 'OFF' to 'Manuale' (Manual) or similar"
+      ]
+    },
+    {
+      "id": "AC-009",
+      "description": "Daily meals list totals refreshed after edit/delete/add",
+      "verify": [
+        "manual: After edit: daily total kcal/macros/enriched nutrients updated",
+        "manual: After delete: daily totals decrease accordingly",
+        "manual: After add: daily totals increase with new meal values"
+      ]
+    },
+    {
+      "id": "AC-010",
+      "description": "Dashboard macronutrient card tap opens History tab for current day",
+      "verify": [
+        "manual: Navigate to Dashboard tab",
+        "manual: Observe macronutrient card (showing kcal, carbs, fat, protein percentages)",
+        "manual: Tap the card; ripple feedback appears, History tab opens",
+        "manual: Current date (today) is selected and displayed in History",
+        "manual: Card appearance and metrics unchanged (only interaction added)"
+      ]
+    },
+    {
+      "id": "AC-011",
+      "description": "Nutrient data persists across app restarts",
+      "verify": [
+        "manual: Log a meal with enriched nutrients (e.g., saturated fat, sugar, minerals, vitamins populated via OFF): Open app, verify data present",
+        "manual: Log another meal; override some nutrient values",
+        "manual: Close app completely (via task manager or similar)",
+        "manual: Reopen app; navigate to History; verify all meals, nutrients, and overrides present",
+        "manual: Data unchanged between pre-close and post-reopen states"
+      ]
+    },
+    {
+      "id": "AC-012",
+      "description": "Empty day handling: History shows 'Nessun pasto registrato' (No meals logged) when no meals for selected day",
+      "verify": [
+        "manual: Select a day with zero meal entries",
+        "manual: Daily totals shown as all 0.0 or N/A",
+        "manual: Message 'Nessun pasto registrato' displayed in meal list area",
+        "manual: Add meal button available; user can add meal for that day"
+      ]
+    },
+    {
+      "id": "AC-013",
+      "description": "Database schema migration: All new nutrient columns created without data loss",
+      "verify": [
+        "cmd: Run app on device with existing database; observe no crashes during startup",
+        "cmd: Database inspector (Android Studio) confirms new columns present in food_item and meal_entry tables",
+        "cmd: Existing meal data preserved (no truncation, IDs unchanged, counts match pre-migration)"
+      ]
+    },
+    {
+      "id": "AC-014",
+      "description": "Backward compatibility: App handles NULL/zero enriched nutrient values gracefully",
+      "verify": [
+        "manual: Log a meal for a food with no enriched nutrient data (all NULL in DB)",
+        "manual: History displays enriched nutrients as '—' or omitted; no crash",
+        "manual: Edit/override screen shows empty or '0' for NULL fields; user can fill in manual values",
+        "manual: Save override; enriched nutrients now visible in meal entry"
+      ]
+    },
+    {
+      "id": "AC-015",
+      "description": "Performance: Swipe navigation responds within 300 ms, 90-day query completes within 500 ms",
+      "verify": [
+        "cmd: Benchmark swipe event handler on Pixel 3a (mid-range device); measure time from touch input to UI update",
+        "cmd: Profile ObserveHistoryUseCase(90) on DB with 100+ meal entries; measure query + composition time",
+        "manual: Feel-test on actual device; swiping should feel smooth, no jank or stutter"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "status": "BLOCKED",
+  "summary": "T-005 blocked: stale async load race + debounce consumed by boundary no-op + missing targeted tests/evidence.",
+  "artifacts": {
+    "review_comments": [
+      {"severity":"blocker","file":"app/src/main/java/com/myfitnessmeals/app/ui/history/HistoryViewModel.kt","message":"Stale async load can overwrite latest selected day."},
+      {"severity":"major","file":"app/src/main/java/com/myfitnessmeals/app/ui/history/HistoryViewModel.kt","message":"Debounce timestamp updates before boundary validation."},
+      {"severity":"major","file":"app/src/test/java/com/myfitnessmeals/app/ui/history/HistoryViewModelTest.kt","message":"Missing tests for boundary-noop debounce and overlapping load race."}
+    ]
+  }
+}

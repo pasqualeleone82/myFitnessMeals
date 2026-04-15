@@ -25,6 +25,11 @@ class LocalFoodRepository(
 
     suspend fun getFoodById(id: Long): FoodItemEntity? = foodDao.getById(id)
 
+    suspend fun getFoodsByIds(ids: Collection<Long>): Map<Long, FoodItemEntity> {
+        if (ids.isEmpty()) return emptyMap()
+        return foodDao.getByIds(ids.distinct()).associateBy { it.id }
+    }
+
     suspend fun getFoodByBarcode(barcode: String): FoodItemEntity? = foodDao.getByBarcode(barcode)
 
     suspend fun searchFoodByText(query: String, limit: Int = 20): FoodLookupResult<List<FoodItemEntity>> {

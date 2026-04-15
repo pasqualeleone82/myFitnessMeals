@@ -1,0 +1,61 @@
+{
+  "acceptance_criteria": [
+    {
+      "id": "AC-001",
+      "description": "Specification scope includes profile setup with calorie estimate output expectations.",
+      "verify": [
+        "manual: read .agents-work/2026-04-07_cr-profilo-ui-macro/spec.md and confirm a dedicated goal and FR section for calorie estimate"
+      ]
+    },
+    {
+      "id": "AC-002",
+      "description": "Specification scope includes plus button alignment correction expectations.",
+      "verify": [
+        "manual: read .agents-work/2026-04-07_cr-profilo-ui-macro/spec.md and confirm explicit requirement for plus button alignment"
+      ]
+    },
+    {
+      "id": "AC-003",
+      "description": "Specification scope includes fix for duplicated percent symbol in macro fields.",
+      "verify": [
+        "manual: read .agents-work/2026-04-07_cr-profilo-ui-macro/spec.md and confirm explicit requirements on single percent symbol behavior"
+      ]
+    },
+    {
+      "id": "AC-004",
+      "description": "Italian business intent is reflected in the spec language and UX expectations.",
+      "verify": [
+        "manual: confirm Italian intent references exist in goals/problem statement and user stories"
+      ]
+    },
+    {
+      "id": "AC-005",
+      "description": "Non-goals explicitly exclude source implementation and test execution for this intake phase.",
+      "verify": [
+        "manual: confirm non-goals section includes no implementation and no test-running activities"
+      ]
+    },
+    {
+      "id": "AC-006",
+      "description": "Edge-case list covers at least eight relevant cases across profile flow, layout alignment, and macro formatting.",
+      "verify": [
+        "manual: count edge cases in spec.md and confirm coverage >= 8 across all three CR areas"
+      ]
+    },
+    {
+      "id": "AC-007",
+      "description": "Constraints include preserving existing architecture.",
+      "verify": [
+        "manual: confirm preserve-architecture constraint is captured in goals, assumptions, or non-functional requirements"
+      ]
+    },
+    {
+      "id": "AC-008",
+      "description": "Required intake artifacts exist under the session folder.",
+      "verify": [
+        "manual: required artifacts exist under session folder",
+        "manual: scope includes all three CR points"
+      ]
+    }
+  ]
+}

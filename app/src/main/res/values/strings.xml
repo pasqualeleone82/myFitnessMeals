@@ -4,7 +4,7 @@
 
     <string name="main_tab_dashboard">Dashboard</string>
     <string name="main_tab_meal">Meal</string>
-    <string name="main_tab_history">History</string>
+    <string name="main_tab_history">Storico</string>
     <string name="main_tab_settings">Settings</string>
 
     <string name="exit_dialog_title">Exit app</string>
@@ -77,12 +77,46 @@
     <string name="history_previous">Previous</string>
     <string name="history_next">Next</string>
     <string name="history_showing_range">Showing last 90 days</string>
+    <string name="history_daily_totals">Daily totals</string>
+    <string name="history_total_target">Target: %1$s</string>
+    <string name="history_total_intake">Intake: %1$s</string>
+    <string name="history_total_burned">Burned: %1$s</string>
+    <string name="history_total_remaining">Remaining: %1$s</string>
+    <string name="history_total_carbs">Carbs: %1$s g</string>
+    <string name="history_total_fat">Fat: %1$s g</string>
+    <string name="history_total_protein">Protein: %1$s g</string>
+    <string name="history_total_saturated_fat">Saturated fat: %1$s g</string>
+    <string name="history_total_sugar">Sugar: %1$s g</string>
+    <string name="history_total_iron">Iron: %1$s mg</string>
+    <string name="history_total_calcium">Calcium: %1$s mg</string>
+    <string name="history_total_magnesium">Magnesium: %1$s mg</string>
+    <string name="history_total_zinc">Zinc: %1$s mg</string>
+    <string name="history_total_vitamin_c">Vitamin C: %1$s mg</string>
+    <string name="history_total_vitamin_d">Vitamin D: %1$s mcg</string>
+    <string name="history_total_vitamin_b12">Vitamin B12: %1$s mcg</string>
+    <string name="history_empty_state_title">Nessun pasto registrato</string>
+    <string name="history_empty_state_subtitle">Vuoi aggiungere un pasto?</string>
+    <string name="history_add_meal">Aggiungi pasto</string>
+    <string name="history_meals_count">Pasti registrati: %1$d</string>
 
     <string name="settings_title">Settings</string>
     <string name="settings_target_kcal">Target kcal</string>
-    <string name="settings_carb_pct">Carb %%</string>
-    <string name="settings_fat_pct">Fat %%</string>
-    <string name="settings_protein_pct">Protein %%</string>
+    <string name="settings_profile_section">Profile</string>
+    <string name="settings_age">Age</string>
+    <string name="settings_weight_kg">Weight (kg)</string>
+    <string name="settings_activity_level">Activity level</string>
+    <string name="settings_activity_sedentary">Sedentary</string>
+    <string name="settings_activity_light">Light</string>
+    <string name="settings_activity_moderate">Moderate</string>
+    <string name="settings_activity_active">Active</string>
+    <string name="settings_goal_type">Goal</string>
+    <string name="settings_goal_lose">Lose</string>
+    <string name="settings_goal_maintain">Maintain</string>
+    <string name="settings_goal_gain">Gain</string>
+    <string name="settings_estimated_daily_calories">Estimated daily calories</string>
+    <string name="settings_carb_pct">Carb</string>
+    <string name="settings_fat_pct">Fat</string>
+    <string name="settings_protein_pct">Protein</string>
     <string name="settings_theme">Theme</string>
     <string name="settings_theme_system">System</string>
     <string name="settings_theme_light">Light</string>
@@ -101,4 +135,8 @@
     <string name="settings_delete_all_data">Delete all data</string>
     <string name="settings_confirm_delete">Confirm delete</string>
     <string name="settings_save">Save settings</string>
+
+    <string name="onboarding_estimated_target_label">Estimated calorie target</string>
+    <string name="onboarding_estimated_target_value">%1$d kcal/day</string>
+    <string name="onboarding_estimated_target_placeholder">Complete profile data</string>
 </resources>

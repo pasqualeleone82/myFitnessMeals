@@ -12,6 +12,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertNull
 import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Test
@@ -200,6 +201,40 @@ class LocalDiaryRepositoryTest {
                 carbTotal = 50.0,
                 fatTotal = 10.0,
                 proteinTotal = 20.0,
+                saturatedFatTotal = 1.0,
+                sugarTotal = 4.0,
+                ironTotal = 1.2,
+                calciumTotal = 30.0,
+                magnesiumTotal = 12.0,
+                zincTotal = 0.6,
+                vitaminCTotal = 5.0,
+                vitaminDTotal = 0.4,
+                vitaminB12Total = 0.2,
+            )
+        )
+
+        repository.addMealEntry(
+            NewMealEntry(
+                localDate = secondDate,
+                timezoneOffsetMin = 60,
+                mealType = MealType.LUNCH,
+                foodId = foodId,
+                quantityValue = 80.0,
+                quantityUnit = "g",
+                resolvedSource = ResolvedSource.CACHE,
+                kcalTotal = 200.0,
+                carbTotal = 20.0,
+                fatTotal = 5.0,
+                proteinTotal = 8.0,
+                saturatedFatTotal = 0.3,
+                sugarTotal = 1.5,
+                ironTotal = 0.5,
+                calciumTotal = 10.0,
+                magnesiumTotal = 4.0,
+                zincTotal = 0.2,
+                vitaminCTotal = 2.0,
+                vitaminDTotal = 0.1,
+                vitaminB12Total = 0.05,
             )
         )
 
@@ -217,6 +252,15 @@ class LocalDiaryRepositoryTest {
                 carbTotal = 70.0,
                 fatTotal = 15.0,
                 proteinTotal = 30.0,
+                saturatedFatTotal = 2.0,
+                sugarTotal = 6.0,
+                ironTotal = 2.0,
+                calciumTotal = 60.0,
+                magnesiumTotal = 20.0,
+                zincTotal = 1.0,
+                vitaminCTotal = 8.0,
+                vitaminDTotal = 0.7,
+                vitaminB12Total = 0.35,
             ),
         )
         assertTrue(updated)
@@ -224,13 +268,31 @@ class LocalDiaryRepositoryTest {
         val firstSummary = repository.getDailySummary(firstDate)
         assertEquals(0.0, firstSummary?.kcalIntake ?: -1.0, 0.001)
         assertEquals(2000.0, firstSummary?.kcalRemaining ?: 0.0, 0.001)
+        assertNull(firstSummary?.saturatedFatTotal)
+        assertNull(firstSummary?.sugarTotal)
+        assertNull(firstSummary?.ironTotal)
+        assertNull(firstSummary?.calciumTotal)
+        assertNull(firstSummary?.magnesiumTotal)
+        assertNull(firstSummary?.zincTotal)
+        assertNull(firstSummary?.vitaminCTotal)
+        assertNull(firstSummary?.vitaminDTotal)
+        assertNull(firstSummary?.vitaminB12Total)
 
         val secondSummary = repository.getDailySummary(secondDate)
-        assertEquals(600.0, secondSummary?.kcalIntake ?: 0.0, 0.001)
-        assertEquals(70.0, secondSummary?.carbTotal ?: 0.0, 0.001)
-        assertEquals(15.0, secondSummary?.fatTotal ?: 0.0, 0.001)
-        assertEquals(30.0, secondSummary?.proteinTotal ?: 0.0, 0.001)
-        assertEquals(1500.0, secondSummary?.kcalRemaining ?: 0.0, 0.001)
+        assertEquals(800.0, secondSummary?.kcalIntake ?: 0.0, 0.001)
+        assertEquals(90.0, secondSummary?.carbTotal ?: 0.0, 0.001)
+        assertEquals(20.0, secondSummary?.fatTotal ?: 0.0, 0.001)
+        assertEquals(38.0, secondSummary?.proteinTotal ?: 0.0, 0.001)
+        assertEquals(1300.0, secondSummary?.kcalRemaining ?: 0.0, 0.001)
+        assertEquals(2.3, secondSummary?.saturatedFatTotal ?: 0.0, 0.001)
+        assertEquals(7.5, secondSummary?.sugarTotal ?: 0.0, 0.001)
+        assertEquals(2.5, secondSummary?.ironTotal ?: 0.0, 0.001)
+        assertEquals(70.0, secondSummary?.calciumTotal ?: 0.0, 0.001)
+        assertEquals(24.0, secondSummary?.magnesiumTotal ?: 0.0, 0.001)
+        assertEquals(1.2, secondSummary?.zincTotal ?: 0.0, 0.001)
+        assertEquals(10.0, secondSummary?.vitaminCTotal ?: 0.0, 0.001)
+        assertEquals(0.8, secondSummary?.vitaminDTotal ?: 0.0, 0.001)
+        assertEquals(0.4, secondSummary?.vitaminB12Total ?: 0.0, 0.001)
     }
 
     @Test
@@ -282,6 +344,153 @@ class LocalDiaryRepositoryTest {
         assertEquals(500.0, summary?.kcalIntake ?: 0.0, 0.001)
         assertEquals(350.0, summary?.kcalBurned ?: 0.0, 0.001)
         assertEquals(2050.0, summary?.kcalRemaining ?: 0.0, 0.001)
+    }
+
+    @Test
+    fun upsertFitnessDaily_recalculatesDailySummaryWithEnrichedTotals() = runTest {
+        val foodId = database.foodDao().upsert(
+            FoodItemEntity(
+                sourceId = "off-7",
+                source = "CACHE",
+                name = "Tofu",
+                brand = "Brand",
+                barcode = "88888",
+                kcal100 = 120.0,
+                carb100 = 4.0,
+                fat100 = 7.0,
+                protein100 = 12.0,
+                lastSyncedAt = 1_700_000_000_000L,
+            )
+        )
+
+        val localDate = "2026-04-06"
+        database.mealEntryDao().insert(
+            MealEntryEntity(
+                localDate = localDate,
+                timezoneOffsetMin = 60,
+                mealType = "lunch",
+                foodId = foodId,
+                quantityValue = 100.0,
+                quantityUnit = "g",
+                resolvedSource = "CACHE",
+                kcalTotal = 200.0,
+                carbTotal = 20.0,
+                fatTotal = 10.0,
+                proteinTotal = 15.0,
+                saturatedFatTotal = 1.5,
+                sugarTotal = 3.0,
+                ironTotal = 0.7,
+                calciumTotal = 80.0,
+                magnesiumTotal = 25.0,
+                zincTotal = 1.2,
+                vitaminCTotal = 12.0,
+                vitaminDTotal = 1.1,
+                vitaminB12Total = 0.3,
+                createdAt = 1_700_000_000_000L,
+                updatedAt = 1_700_000_000_000L,
+            )
+        )
+        database.mealEntryDao().insert(
+            MealEntryEntity(
+                localDate = localDate,
+                timezoneOffsetMin = 60,
+                mealType = "dinner",
+                foodId = foodId,
+                quantityValue = 120.0,
+                quantityUnit = "g",
+                resolvedSource = "CACHE",
+                kcalTotal = 150.0,
+                carbTotal = 10.0,
+                fatTotal = 8.0,
+                proteinTotal = 10.0,
+                saturatedFatTotal = 0.5,
+                sugarTotal = 2.0,
+                ironTotal = 0.3,
+                calciumTotal = 20.0,
+                magnesiumTotal = 5.0,
+                zincTotal = 0.3,
+                vitaminCTotal = 4.0,
+                vitaminDTotal = 0.4,
+                vitaminB12Total = 0.1,
+                createdAt = 1_700_000_000_000L,
+                updatedAt = 1_700_000_000_000L,
+            )
+        )
+
+        repository.upsertFitnessDaily(
+            localDate = localDate,
+            provider = ProviderType.GARMIN,
+            steps = 5000,
+            activeKcal = 100.0,
+            workoutMinutes = 20,
+            syncStatus = "SUCCESS",
+        )
+
+        val summary = repository.getDailySummary(localDate)
+        assertEquals(2.0, summary?.saturatedFatTotal ?: 0.0, 0.001)
+        assertEquals(5.0, summary?.sugarTotal ?: 0.0, 0.001)
+        assertEquals(1.0, summary?.ironTotal ?: 0.0, 0.001)
+        assertEquals(100.0, summary?.calciumTotal ?: 0.0, 0.001)
+        assertEquals(30.0, summary?.magnesiumTotal ?: 0.0, 0.001)
+        assertEquals(1.5, summary?.zincTotal ?: 0.0, 0.001)
+        assertEquals(16.0, summary?.vitaminCTotal ?: 0.0, 0.001)
+        assertEquals(1.5, summary?.vitaminDTotal ?: 0.0, 0.001)
+        assertEquals(0.4, summary?.vitaminB12Total ?: 0.0, 0.001)
+    }
+
+    @Test
+    fun upsertFitnessDaily_withOnlyLegacyMeals_keepsEnrichedTotalsNull() = runTest {
+        val foodId = database.foodDao().upsert(
+            FoodItemEntity(
+                sourceId = "off-8",
+                source = "CACHE",
+                name = "Bread",
+                brand = "Brand",
+                barcode = "99999",
+                kcal100 = 260.0,
+                carb100 = 49.0,
+                fat100 = 3.0,
+                protein100 = 9.0,
+                lastSyncedAt = 1_700_000_000_000L,
+            )
+        )
+
+        val localDate = "2026-04-07"
+        repository.addMealEntry(
+            NewMealEntry(
+                localDate = localDate,
+                timezoneOffsetMin = 60,
+                mealType = MealType.SNACK,
+                foodId = foodId,
+                quantityValue = 100.0,
+                quantityUnit = "g",
+                resolvedSource = ResolvedSource.CACHE,
+                kcalTotal = 100.0,
+                carbTotal = 15.0,
+                fatTotal = 4.0,
+                proteinTotal = 6.0,
+            )
+        )
+
+        repository.upsertFitnessDaily(
+            localDate = localDate,
+            provider = ProviderType.GARMIN,
+            steps = 3000,
+            activeKcal = 0.0,
+            workoutMinutes = 0,
+            syncStatus = "SUCCESS",
+        )
+
+        val summary = repository.getDailySummary(localDate)
+        assertNull(summary?.saturatedFatTotal)
+        assertNull(summary?.sugarTotal)
+        assertNull(summary?.ironTotal)
+        assertNull(summary?.calciumTotal)
+        assertNull(summary?.magnesiumTotal)
+        assertNull(summary?.zincTotal)
+        assertNull(summary?.vitaminCTotal)
+        assertNull(summary?.vitaminDTotal)
+        assertNull(summary?.vitaminB12Total)
     }
 
     @Test

@@ -23,6 +23,24 @@ data class DailySummaryEntity(
     val fatTotal: Double,
     @ColumnInfo(name = "protein_total")
     val proteinTotal: Double,
+    @ColumnInfo(name = "saturated_fat_total")
+    val saturatedFatTotal: Double? = null,
+    @ColumnInfo(name = "sugar_total")
+    val sugarTotal: Double? = null,
+    @ColumnInfo(name = "iron_total")
+    val ironTotal: Double? = null,
+    @ColumnInfo(name = "calcium_total")
+    val calciumTotal: Double? = null,
+    @ColumnInfo(name = "magnesium_total")
+    val magnesiumTotal: Double? = null,
+    @ColumnInfo(name = "zinc_total")
+    val zincTotal: Double? = null,
+    @ColumnInfo(name = "vitamin_c_total")
+    val vitaminCTotal: Double? = null,
+    @ColumnInfo(name = "vitamin_d_total")
+    val vitaminDTotal: Double? = null,
+    @ColumnInfo(name = "vitamin_b12_total")
+    val vitaminB12Total: Double? = null,
     @ColumnInfo(name = "updated_at")
     val updatedAt: Long,
 )

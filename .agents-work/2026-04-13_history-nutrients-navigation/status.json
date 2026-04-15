@@ -1,0 +1,89 @@
+{
+  "current_state": "ASK_USER",
+  "session": "2026-04-13_history-nutrients-navigation",
+  "assumptions": [
+    "OFF (Open Food Facts) API or embedded JSON catalog provides extended nutrient data; fields default to NULL if unavailable",
+    "Single-user local app; Room database as primary persistence layer",
+    "All UI via Jetpack Compose; Material 3 library available in dependencies",
+    "GestureScope or gesture detection infrastructure available for swipe handling",
+    "Existing MealLoggingViewModel and related flows are reusable for edit/add operations",
+    "Italian localization strings (strings-it.xml) follow existing naming convention",
+    "Linear nutrient scaling: portion effect is proportional (no non-linear bioavailability effects)",
+    "Single-threaded execution; no race conditions expected from concurrent meal edits during refresh",
+    "Nutrient enrichment migration remains additive only; new nutrient columns are nullable to preserve backward compatibility",
+    "Save/update nutrient computations continue to use existing quantity conversion factors (g/ml -> quantity/100, serving -> quantity) for all 12 nutrients",
+    "T-003 blocker fix is scoped to enriched override persistence and update/date-move daily-summary recomputation tests; no History/Dashboard UI behavior changed",
+    "T-004 ObserveHistoryUseCase emits a one-shot Flow snapshot from current DAO range data; reactive DB observation can be added in later UI-state tasks if needed",
+    "T-004 review fix assumes GetHistoryMealsForDayUseCase metadata should prioritize MealEntry.resolvedSource; override-row presence is only a fallback when resolvedSource cannot be parsed",
+    "T-005 HistoryViewModel uses a 500ms swipe debounce and explicit add/edit/delete/override refresh hooks to keep selected-day meals/totals deterministic",
+    "T-005 blocker fix will gate meal-load writes by request token/current selected date and only stamp debounce time after successful day-change commits"
+  ],
+  "user_decisions": [
+    {
+      "decision_id": "UD-APPROVE-DESIGN",
+      "question": "Approvi spec, architettura e design per History tab, nutrienti estesi, override button e integrazione dashboard?",
+      "status": "answered",
+      "answer": "approved: procedi all'implementazione",
+      "asked_at": "2026-04-13T00:00:00Z",
+      "resolved_at": "2026-04-13T00:00:00Z",
+      "state_context": "APPROVE_DESIGN",
+      "resolution_reason": null
+    },
+    {
+      "decision_id": "UD-REVIEW-STRATEGY",
+      "question": "Preferisci review/QA/security per-batch (post-ogni task) o single-final (dopo tutti i task)?",
+      "status": "answered",
+      "answer": "per-batch",
+      "asked_at": "2026-04-13T00:00:00Z",
+      "resolved_at": "2026-04-13T00:00:00Z",
+      "state_context": "REVIEW_STRATEGY",
+      "resolution_reason": null
+    },
+    {
+      "decision_id": "UD-QA-T001-MANUAL",
+      "question": "QA T-001: i test automatici passano ma AC-013/014 richiedono verifica manuale su device/emulatore. Vuoi procedere con implementazione successiva e rimandare i check manuali alla fase finale?",
+      "status": "answered",
+      "answer": "approved-defer-manual-checks",
+      "asked_at": "2026-04-14T08:48:50Z",
+      "resolved_at": "2026-04-14T08:49:53Z",
+      "state_context": "ASK_USER",
+      "resolution_reason": "Utente ha scelto di continuare sviluppo e rimandare i check manuali AC-013/AC-014 alla fase finale."
+    },
+    {
+      "decision_id": "UD-T006-UNRELATED-CHANGES",
+      "question": "Durante T-006 sono state rilevate modifiche non correlate gia presenti nel worktree. Vuoi che continui ignorando queste modifiche e lavorando solo sui file T-006?",
+      "status": "pending",
+      "answer": null,
+      "asked_at": "2026-04-15T13:46:03Z",
+      "resolved_at": null,
+      "state_context": "ASK_USER",
+      "resolution_reason": null
+    }
+  ],
+  "gate_tracking": {
+    "APPROVE_DESIGN": {
+      "correction_status": "none",
+      "last_correction_dispatch": {
+        "agent": null,
+        "task_id": null,
+        "at": null
+      }
+    }
+  },
+  "runtime_flags": {
+    "copilot_instructions_exists": false,
+    "copilot_checked_at": "2026-04-14T09:00:00Z"
+  },
+  "retry_counts": {"T-001": {"FIX_REVIEW": 1}, "T-004": {"FIX_REVIEW": 1}, "T-005": {"FIX_REVIEW": 1}},
+  "known_issues": [
+    "T-001 minor: recalculateDailySummaryLocked duplicated—tech debt for later cleanup (logged, not fixed per non-goals)",
+    "T-001 minor: base-4 MealEntryTotals fields (kcalTotal etc.) remain Double? though COALESCE guarantees non-null—out of scope per non-goals (non-enriched field handling)",
+    "T-001 QA manual AC-013/AC-014 verification deferred to final integration phase by user decision.",
+    "T-002 manual AC-004/AC-009/AC-014 UI verification deferred to final integration phase by user decision.",
+    "T-003 manual AC-009/AC-011 UI+restart verification deferred to final integration phase.",
+    "T-004 manual AC-004/AC-012 verification deferred to final integration phase.",
+    "T-005 manual AC-002/AC-003/AC-009 verification deferred to final integration phase."
+  ],
+  "last_ci_result": "unknown",
+  "last_update": "2026-04-15T13:46:03Z"
+}

@@ -23,17 +23,6 @@ data class DashboardSnapshot(
     val latestWeightKg: Double,
 )
 
-data class HistoryDaySnapshot(
-    val localDate: String,
-    val kcalTarget: Double,
-    val kcalIntake: Double,
-    val kcalBurned: Double,
-    val kcalRemaining: Double,
-    val carbGrams: Double,
-    val fatGrams: Double,
-    val proteinGrams: Double,
-)
-
 class ObserveDashboardUseCase(
     private val diaryRepository: LocalDiaryRepository,
     private val fitnessRepository: LocalFitnessRepository,
@@ -82,43 +71,5 @@ class ObserveDashboardUseCase(
             return 0
         }
         return ((value / total) * 100.0).toInt()
-    }
-}
-
-class ObserveHistoryUseCase(
-    private val diaryRepository: LocalDiaryRepository,
-    private val settingsRepository: UserSettingsRepository,
-    private val nowDateProvider: () -> LocalDate = { LocalDate.now() },
-) {
-    suspend operator fun invoke(days: Int = 90): List<HistoryDaySnapshot> {
-        require(days >= 1) { "History days must be at least 1" }
-
-        val endDate = nowDateProvider()
-        val startDate = endDate.minusDays(days.toLong() - 1L)
-        val settingsTarget = settingsRepository.getSettings().targetKcal
-
-        val summaries = diaryRepository
-            .getDailySummariesInRange(startDate.toString(), endDate.toString())
-            .associateBy { it.localDate }
-
-        return (0 until days).map { index ->
-            val date = endDate.minusDays(index.toLong())
-            val key = date.toString()
-            val summary = summaries[key]
-            val target = summary?.kcalTarget?.takeIf { it > 0.0 } ?: settingsTarget
-            val intake = summary?.kcalIntake ?: 0.0
-            val burned = summary?.kcalBurned ?: 0.0
-
-            HistoryDaySnapshot(
-                localDate = key,
-                kcalTarget = target,
-                kcalIntake = intake,
-                kcalBurned = burned,
-                kcalRemaining = target - intake + burned,
-                carbGrams = summary?.carbTotal ?: 0.0,
-                fatGrams = summary?.fatTotal ?: 0.0,
-                proteinGrams = summary?.proteinTotal ?: 0.0,
-            )
-        }
     }
 }

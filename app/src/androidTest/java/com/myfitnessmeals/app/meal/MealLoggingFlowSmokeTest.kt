@@ -32,7 +32,7 @@ class MealLoggingFlowSmokeTest {
         runBlocking(Dispatchers.IO) {
             val context = InstrumentationRegistry.getInstrumentation().targetContext
             val database = Room.databaseBuilder(context, AppDatabase::class.java, "myfitnessmeals.db")
-                .addMigrations(AppDatabase.MIGRATION_1_2)
+                .addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3)
                 .build()
             try {
                 database.clearAllTables()

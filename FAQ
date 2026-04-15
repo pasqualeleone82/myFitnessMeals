@@ -1,0 +1,29 @@
+# Building a New APK Package
+
+## Prerequisites
+- Android SDK installed
+- Android Studio or command-line tools
+- Signed keystore file (for release builds)
+
+## Steps for Building APK
+1. **Open the Project**: Open your Android project in Android Studio or navigate to the project directory in the terminal. 
+2. **Configure Build Variant**: In Android Studio, select the desired build variant (e.g., `debug` or `release`) from the Build Variants panel.
+3. **Build the APK**:
+   - In Android Studio: Go to `Build > Build Bundle(s) / APK(s) > Build APK(s)`.
+   - Using command line: Run `./gradlew assembleDebug` for a debug build or `./gradlew assembleRelease` for a release build.
+4. **Locate the APK**: After the build process completes, the generated APK can be found in the `app/build/outputs/apk/` directory, organized by build variant (e.g., `debug` or `release`).
+5. example command for signing the APK (for release builds):
+   ```
+   ./gradlew clean :app:assembleRelease
+   ```
+   Then, use the `apksigner` tool to sign the APK:
+   ```
+### Debug Build
+per il debug build, the APK will be located at:
+   `app/build/outputs/apk/debug/app-debug.apk`
+### Command for signing the APK (for release builds):
+   ```
+   ./gradlew clean :app:assembleDebug
+   ```
+   Then, use the `apksigner` tool to sign the APK:
+   ```

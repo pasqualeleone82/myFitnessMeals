@@ -51,6 +51,15 @@ class LocalFitnessRepository(
         val carbs = totals.carbTotal ?: 0.0
         val fats = totals.fatTotal ?: 0.0
         val proteins = totals.proteinTotal ?: 0.0
+        val saturatedFat = totals.saturatedFatTotal
+        val sugar = totals.sugarTotal
+        val iron = totals.ironTotal
+        val calcium = totals.calciumTotal
+        val magnesium = totals.magnesiumTotal
+        val zinc = totals.zincTotal
+        val vitaminC = totals.vitaminCTotal
+        val vitaminD = totals.vitaminDTotal
+        val vitaminB12 = totals.vitaminB12Total
         val burned = db.fitnessDailyDao().getActiveKcalForDate(localDate)
         val target = existing?.kcalTarget ?: 0.0
 
@@ -64,6 +73,15 @@ class LocalFitnessRepository(
                 carbTotal = carbs,
                 fatTotal = fats,
                 proteinTotal = proteins,
+                saturatedFatTotal = saturatedFat,
+                sugarTotal = sugar,
+                ironTotal = iron,
+                calciumTotal = calcium,
+                magnesiumTotal = magnesium,
+                zincTotal = zinc,
+                vitaminCTotal = vitaminC,
+                vitaminDTotal = vitaminD,
+                vitaminB12Total = vitaminB12,
                 updatedAt = now,
             )
         )

@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
+import com.myfitnessmeals.app.data.local.projection.MealEntryTotals
 
 @Dao
 interface MealEntryDao {
@@ -29,20 +30,22 @@ interface MealEntryDao {
     @Query(
         """
         SELECT
-            SUM(kcal_total) AS kcalTotal,
-            SUM(carb_total) AS carbTotal,
-            SUM(fat_total) AS fatTotal,
-            SUM(protein_total) AS proteinTotal
+            COALESCE(SUM(kcal_total), 0.0) AS kcalTotal,
+            COALESCE(SUM(carb_total), 0.0) AS carbTotal,
+            COALESCE(SUM(fat_total), 0.0) AS fatTotal,
+            COALESCE(SUM(protein_total), 0.0) AS proteinTotal,
+            SUM(saturated_fat_total) AS saturatedFatTotal,
+            SUM(sugar_total) AS sugarTotal,
+            SUM(iron_total) AS ironTotal,
+            SUM(calcium_total) AS calciumTotal,
+            SUM(magnesium_total) AS magnesiumTotal,
+            SUM(zinc_total) AS zincTotal,
+            SUM(vitamin_c_total) AS vitaminCTotal,
+            SUM(vitamin_d_total) AS vitaminDTotal,
+            SUM(vitamin_b12_total) AS vitaminB12Total
         FROM meal_entry
         WHERE local_date = :localDate
         """
     )
     suspend fun getTotalsForDate(localDate: String): MealEntryTotals
 }
-
-data class MealEntryTotals(
-    val kcalTotal: Double?,
-    val carbTotal: Double?,
-    val fatTotal: Double?,
-    val proteinTotal: Double?,
-)

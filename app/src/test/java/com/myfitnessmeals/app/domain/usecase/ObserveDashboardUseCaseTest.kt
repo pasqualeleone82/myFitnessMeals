@@ -132,26 +132,6 @@ class ObserveDashboardUseCaseTest {
         assertEquals(82.5, snapshot.latestWeightKg, 0.001)
     }
 
-    @Test
-    fun observeHistory_returnsAtLeastNinetyDaysWithZeroFilledGaps() = runTest {
-        val date = LocalDate.of(2026, 4, 1)
-        diaryRepository.setDailyTarget(localDate = date.toString(), kcalTarget = 2000.0)
-
-        val useCase = ObserveHistoryUseCase(
-            diaryRepository = diaryRepository,
-            settingsRepository = settingsRepository,
-            nowDateProvider = { date },
-        )
-
-        val history = useCase(days = 90)
-
-        assertEquals(90, history.size)
-        assertEquals("2026-04-01", history.first().localDate)
-        assertEquals("2026-01-02", history.last().localDate)
-        assertEquals(2000.0, history.first().kcalTarget, 0.001)
-        assertEquals(0.0, history[10].kcalIntake, 0.001)
-    }
-
     private class InMemorySettingsRepository(
         private var settings: UserSettings,
     ) : UserSettingsRepository {

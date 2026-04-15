@@ -1,0 +1,368 @@
+project:
+  name: "History Tab, Nutrient Enrichment, Meal Management, Dashboard Integration"
+  definition_of_done:
+    - "CI green"
+    - "AC met"
+    - "README updated if behavior/contracts change"
+
+tasks:
+  - id: T-001
+    status: completed
+    type: refactor
+    title: "Extend Room entities and add migration for enriched nutrients"
+    size: M
+    depends_on: []
+    goal: "Add additive DB schema changes for all enriched nutrients in food, meal entry, override, and daily summary tables with safe migration and null-safe defaults."
+    non_goals:
+      - "Implement History UI"
+      - "Change business logic beyond schema compatibility"
+    context_files:
+      - ".agents-work/2026-04-13_history-nutrients-navigation/spec.md"
+      - ".agents-work/2026-04-13_history-nutrients-navigation/architecture.md"
+      - ".agents-work/2026-04-13_history-nutrients-navigation/acceptance.json"
+    files_expected:
+      - "app/src/main/java/com/myfitnessmeals/app/data/local/entity/FoodItemEntity.kt"
+      - "app/src/main/java/com/myfitnessmeals/app/data/local/entity/MealEntryEntity.kt"
+      - "app/src/main/java/com/myfitnessmeals/app/data/local/entity/NutritionOverrideEntity.kt"
+      - "app/src/main/java/com/myfitnessmeals/app/data/local/entity/DailySummaryEntity.kt"
+      - "app/src/main/java/com/myfitnessmeals/app/data/local/AppDatabase.kt"
+      - "app/src/test/java/**/Migration*Test.kt"
+    acceptance_checks:
+      - "cmd: ./gradlew :app:testDebugUnitTest --tests '*Migration*'"
+      - "manual: Upgrade existing local DB and verify no startup crash/data loss (AC-013)"
+      - "manual: Existing rows keep prior values; new nutrient columns nullable/0-safe on read (AC-014)"
+    risk_flags:
+      - "breaking-change"
+    definition_of_done:
+      - "Migration is additive and idempotent for target version"
+      - "Migration tests pass locally"
+      - "Meets AC-013, AC-014"
+    done_when:
+      - "Tests added/updated"
+      - "No lint errors"
+      - "Meets AC-013, AC-014 references"
+
+  - id: T-002
+    status: completed
+    type: refactor
+    title: "Update DAO queries and enriched aggregations"
+    size: S
+    depends_on: ["T-001"]
+    goal: "Expose enriched per-day totals and meal detail queries (with null-safe handling) needed by History and dashboard flows."
+    non_goals:
+      - "Compose UI changes"
+      - "Navigation wiring"
+    context_files:
+      - ".agents-work/2026-04-13_history-nutrients-navigation/spec.md"
+      - ".agents-work/2026-04-13_history-nutrients-navigation/architecture.md"
+      - ".agents-work/2026-04-13_history-nutrients-navigation/acceptance.json"
+    files_expected:
+      - "app/src/main/java/com/myfitnessmeals/app/data/local/dao/MealEntryDao.kt"
+      - "app/src/main/java/com/myfitnessmeals/app/data/local/dao/DailySummaryDao.kt"
+      - "app/src/main/java/com/myfitnessmeals/app/data/local/projection/*.kt"
+      - "app/src/test/java/**/Dao*Test.kt"
+    acceptance_checks:
+      - "cmd: ./gradlew :app:testDebugUnitTest --tests '*Dao*'"
+      - "manual: Day totals include base+enriched nutrients for selected date (AC-004, AC-009)"
+      - "manual: NULL enriched values do not crash query mapping (AC-014)"
+    risk_flags:
+      - "perf"
+    definition_of_done:
+      - "DAO APIs support 90-day range + per-day meals"
+      - "Aggregation correctness asserted by tests"
+      - "Meets AC-004, AC-009, AC-014"
+    done_when:
+      - "Tests added/updated"
+      - "No lint errors"
+      - "Meets AC-004, AC-009, AC-014 references"
+
+  - id: T-003
+    status: completed
+    type: feat
+    title: "Extend nutrient resolution and repository save/update flows"
+    size: M
+    depends_on: ["T-001", "T-002"]
+    goal: "Compute/store all 12 nutrients (including override source precedence) in save/update/delete flows and keep daily summaries synchronized."
+    non_goals:
+      - "Build History UI"
+      - "Dashboard tap navigation"
+    context_files:
+      - ".agents-work/2026-04-13_history-nutrients-navigation/spec.md"
+      - ".agents-work/2026-04-13_history-nutrients-navigation/architecture.md"
+      - ".agents-work/2026-04-13_history-nutrients-navigation/acceptance.json"
+    files_expected:
+      - "app/src/main/java/com/myfitnessmeals/app/domain/service/NutrientResolverService.kt"
+      - "app/src/main/java/com/myfitnessmeals/app/data/repository/LocalDiaryRepository.kt"
+      - "app/src/main/java/com/myfitnessmeals/app/domain/usecase/SaveMealEntryUseCase.kt"
+      - "app/src/main/java/com/myfitnessmeals/app/domain/usecase/DeleteMealEntryUseCase.kt"
+      - "app/src/test/java/**/NutrientResolver*Test.kt"
+      - "app/src/test/java/**/SaveMealEntry*Test.kt"
+    acceptance_checks:
+      - "cmd: ./gradlew :app:testDebugUnitTest --tests '*NutrientResolver*' --tests '*SaveMealEntry*'"
+      - "manual: Edit/delete/add recomputes day totals immediately after mutation (AC-009)"
+      - "manual: Persisted enriched nutrient values survive app restart (AC-011)"
+    risk_flags:
+      - "breaking-change"
+    definition_of_done:
+      - "12-nutrient computation path covered by unit tests"
+      - "Repository keeps daily summary in sync after mutations"
+      - "Meets AC-009, AC-011"
+    done_when:
+      - "Tests added/updated"
+      - "No lint errors"
+      - "Meets AC-009, AC-011 references"
+
+  - id: T-004
+    status: completed
+    type: feat
+    title: "Add/extend domain models and use cases for History day + meal cards"
+    size: S
+    depends_on: ["T-002", "T-003"]
+    goal: "Expose UI-ready History snapshot and meal card models with enriched nutrients and null-safe formatting metadata."
+    non_goals:
+      - "Compose rendering"
+      - "Navigation event handling"
+    context_files:
+      - ".agents-work/2026-04-13_history-nutrients-navigation/spec.md"
+      - ".agents-work/2026-04-13_history-nutrients-navigation/architecture.md"
+      - ".agents-work/2026-04-13_history-nutrients-navigation/acceptance.json"
+    files_expected:
+      - "app/src/main/java/com/myfitnessmeals/app/domain/model/HistoryDaySnapshot.kt"
+      - "app/src/main/java/com/myfitnessmeals/app/domain/model/HistoryMealCard.kt"
+      - "app/src/main/java/com/myfitnessmeals/app/domain/usecase/ObserveHistoryUseCase.kt"
+      - "app/src/main/java/com/myfitnessmeals/app/domain/usecase/GetHistoryMealsForDayUseCase.kt"
+      - "app/src/test/java/**/ObserveHistoryUseCase*Test.kt"
+    acceptance_checks:
+      - "cmd: ./gradlew :app:testDebugUnitTest --tests '*ObserveHistoryUseCase*' --tests '*GetHistoryMealsForDayUseCase*'"
+      - "manual: Domain output includes all nutrients required for History list/totals display (AC-004)"
+      - "manual: Empty-day snapshot supported with zero/placeholder semantics (AC-012)"
+    risk_flags:
+      - "none"
+    definition_of_done:
+      - "Use cases return stable DTOs for 90-day History"
+      - "Null/empty behavior documented in tests"
+      - "Meets AC-004, AC-012"
+    done_when:
+      - "Tests added/updated"
+      - "No lint errors"
+      - "Meets AC-004, AC-012 references"
+
+  - id: T-005
+    status: completed
+    type: feat
+    title: "Implement HistoryViewModel state machine for day navigation and meal actions"
+    size: M
+    depends_on: ["T-004"]
+    goal: "Implement selected-day state, swipe day switching, meal loading, and action events (edit/delete/add/override) with debounce and boundary handling."
+    non_goals:
+      - "Compose visual components"
+      - "Dashboard card click behavior"
+    context_files:
+      - ".agents-work/2026-04-13_history-nutrients-navigation/spec.md"
+      - ".agents-work/2026-04-13_history-nutrients-navigation/architecture.md"
+      - ".agents-work/2026-04-13_history-nutrients-navigation/acceptance.json"
+      - ".agents-work/2026-04-13_history-nutrients-navigation/design-specs/design-spec-history-nutrients-ui.md"
+    files_expected:
+      - "app/src/main/java/com/myfitnessmeals/app/ui/history/HistoryViewModel.kt"
+      - "app/src/main/java/com/myfitnessmeals/app/ui/history/HistoryUiState.kt"
+      - "app/src/test/java/**/HistoryViewModel*Test.kt"
+    acceptance_checks:
+      - "cmd: ./gradlew :app:testDebugUnitTest --tests '*HistoryViewModel*'"
+      - "manual: Swipe right loads previous day and respects oldest boundary (AC-002)"
+      - "manual: Swipe left loads next day and respects today boundary (AC-003)"
+      - "manual: ViewModel refreshes totals/meals after add/edit/delete events (AC-009)"
+    risk_flags:
+      - "perf"
+    definition_of_done:
+      - "Debounce prevents rapid-swipe state corruption"
+      - "Navigation boundaries are deterministic"
+      - "Meets AC-002, AC-003, AC-009"
+    done_when:
+      - "Tests added/updated"
+      - "No lint errors"
+      - "Meets AC-002, AC-003, AC-009 references"
+
+  - id: T-006
+    status: in-progress
+    type: feat
+    title: "Build History screen shell (tab, date header, totals card, empty state, add button)"
+    size: M
+    depends_on: ["T-005"]
+    goal: "Deliver History tab surface with swipe gestures and core layout primitives consistent with Material 3 and Italian strings."
+    non_goals:
+      - "Meal card action dialogs"
+      - "Override editor dialog"
+    context_files:
+      - ".agents-work/2026-04-13_history-nutrients-navigation/spec.md"
+      - ".agents-work/2026-04-13_history-nutrients-navigation/architecture.md"
+      - ".agents-work/2026-04-13_history-nutrients-navigation/acceptance.json"
+      - ".agents-work/2026-04-13_history-nutrients-navigation/design-specs/design-spec-history-nutrients-ui.md"
+    files_expected:
+      - "app/src/main/java/com/myfitnessmeals/app/ui/navigation/*"
+      - "app/src/main/java/com/myfitnessmeals/app/ui/history/HistoryRoute.kt"
+      - "app/src/main/java/com/myfitnessmeals/app/ui/history/HistoryScreen.kt"
+      - "app/src/main/java/com/myfitnessmeals/app/ui/history/DailyTotalsCard.kt"
+      - "app/src/main/res/values/strings.xml"
+      - "app/src/main/res/values-it/strings.xml"
+      - "app/src/androidTest/java/**/HistoryScreen*Test.kt"
+    acceptance_checks:
+      - "cmd: ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=*HistoryScreen*"
+      - "manual: History tab appears in bottom navigation as 'Storico' (AC-001)"
+      - "manual: Empty day renders 'Nessun pasto registrato' and add button (AC-012)"
+      - "manual: Date header and daily totals visible and update with selected day (AC-004)"
+    risk_flags:
+      - "none"
+    definition_of_done:
+      - "History surface available from nav graph"
+      - "Italian text sourced from resources"
+      - "Meets AC-001, AC-004, AC-012"
+    done_when:
+      - "Tests added/updated"
+      - "No lint errors"
+      - "Meets AC-001, AC-004, AC-012 references"
+
+  - id: T-007
+    status: not-started
+    type: feat
+    title: "Implement meal card rendering and edit/delete/add flows from History"
+    size: M
+    depends_on: ["T-006"]
+    goal: "Enable meal list cards with full nutrient display plus edit/delete/add interactions wired to existing Meal Logging flow and confirmation dialog."
+    non_goals:
+      - "Override nutrient editing UI"
+      - "Dashboard integration"
+    context_files:
+      - ".agents-work/2026-04-13_history-nutrients-navigation/spec.md"
+      - ".agents-work/2026-04-13_history-nutrients-navigation/architecture.md"
+      - ".agents-work/2026-04-13_history-nutrients-navigation/acceptance.json"
+      - ".agents-work/2026-04-13_history-nutrients-navigation/design-specs/design-spec-history-nutrients-ui.md"
+    files_expected:
+      - "app/src/main/java/com/myfitnessmeals/app/ui/history/MealCard.kt"
+      - "app/src/main/java/com/myfitnessmeals/app/ui/history/DeleteMealConfirmDialog.kt"
+      - "app/src/main/java/com/myfitnessmeals/app/ui/history/HistoryRoute.kt"
+      - "app/src/main/java/com/myfitnessmeals/app/ui/meal/*"
+      - "app/src/androidTest/java/**/MealCard*Test.kt"
+    acceptance_checks:
+      - "cmd: ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=*MealCard*"
+      - "manual: Meal cards show portion + base/enriched nutrients with null placeholders (AC-004)"
+      - "manual: Edit opens prefilled meal logging and save returns updated day totals (AC-005, AC-009)"
+      - "manual: Delete confirmation and removal behavior works (AC-006, AC-009)"
+      - "manual: Add meal uses selected date context from History (AC-007)"
+    risk_flags:
+      - "none"
+    definition_of_done:
+      - "Action row interactions are wired and testable"
+      - "No regression in existing meal logging flow"
+      - "Meets AC-004, AC-005, AC-006, AC-007, AC-009"
+    done_when:
+      - "Tests added/updated"
+      - "No lint errors"
+      - "Meets AC-004, AC-005, AC-006, AC-007, AC-009 references"
+
+  - id: T-008
+    status: not-started
+    type: feat
+    title: "Add button-based nutrient override dialog and persistence wiring"
+    size: M
+    depends_on: ["T-006", "T-003"]
+    goal: "Implement dedicated override button and dialog for all 12 nutrients, persist overrides, and reflect manual source in History immediately."
+    non_goals:
+      - "Redesign meal card layout beyond required controls"
+      - "Introduce inline editing"
+    context_files:
+      - ".agents-work/2026-04-13_history-nutrients-navigation/spec.md"
+      - ".agents-work/2026-04-13_history-nutrients-navigation/architecture.md"
+      - ".agents-work/2026-04-13_history-nutrients-navigation/acceptance.json"
+      - ".agents-work/2026-04-13_history-nutrients-navigation/design-specs/design-spec-history-nutrients-ui.md"
+    files_expected:
+      - "app/src/main/java/com/myfitnessmeals/app/ui/history/NutrientOverrideDialog.kt"
+      - "app/src/main/java/com/myfitnessmeals/app/ui/history/MealCard.kt"
+      - "app/src/main/java/com/myfitnessmeals/app/data/repository/LocalOverrideRepository.kt"
+      - "app/src/main/res/values/strings.xml"
+      - "app/src/main/res/values-it/strings.xml"
+      - "app/src/androidTest/java/**/NutrientOverride*Test.kt"
+    acceptance_checks:
+      - "cmd: ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=*NutrientOverride*"
+      - "manual: Override button is separate (not inline) and opens 12-field dialog (AC-008)"
+      - "manual: Saving override updates displayed values/source without relaunch (AC-008, AC-009)"
+      - "manual: Overrides persist after restart (AC-011)"
+    risk_flags:
+      - "breaking-change"
+    definition_of_done:
+      - "All 12 nutrient fields supported in override workflow"
+      - "Manual source indication displayed after save"
+      - "Meets AC-008, AC-009, AC-011"
+    done_when:
+      - "Tests added/updated"
+      - "No lint errors"
+      - "Meets AC-008, AC-009, AC-011 references"
+
+  - id: T-009
+    status: not-started
+    type: feat
+    title: "Integrate dashboard macronutrient card tap to History(today)"
+    size: S
+    depends_on: ["T-001", "T-006"]
+    goal: "Make dashboard macro card clickable with ripple feedback and route to History tab focused on current date without altering card visuals."
+    non_goals:
+      - "Refactor dashboard calculations"
+      - "Change card content/appearance"
+    context_files:
+      - ".agents-work/2026-04-13_history-nutrients-navigation/spec.md"
+      - ".agents-work/2026-04-13_history-nutrients-navigation/architecture.md"
+      - ".agents-work/2026-04-13_history-nutrients-navigation/acceptance.json"
+      - ".agents-work/2026-04-13_history-nutrients-navigation/design-specs/design-spec-history-nutrients-ui.md"
+    files_expected:
+      - "app/src/main/java/com/myfitnessmeals/app/ui/dashboard/*"
+      - "app/src/main/java/com/myfitnessmeals/app/ui/navigation/*"
+      - "app/src/androidTest/java/**/DashboardNavigation*Test.kt"
+    acceptance_checks:
+      - "cmd: ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=*DashboardNavigation*"
+      - "manual: Tapping macro card shows ripple and opens History tab on today (AC-010)"
+      - "manual: Existing macro metrics and card layout remain unchanged (AC-010)"
+    risk_flags:
+      - "none"
+    definition_of_done:
+      - "Navigation event reaches History with today's date selected"
+      - "No visual regression to dashboard card"
+      - "Meets AC-010"
+    done_when:
+      - "Tests added/updated"
+      - "No lint errors"
+      - "Meets AC-010 references"
+
+  - id: T-010
+    status: not-started
+    type: test
+    title: "Finalize integration verification, performance checks, and regression safeguards"
+    size: M
+    depends_on: ["T-007", "T-008", "T-009"]
+    goal: "Close the feature with end-to-end validation, performance checks for swipe/history queries, and regression coverage for legacy tabs and restart persistence."
+    non_goals:
+      - "Introduce new product behavior"
+      - "Redesign existing tabs"
+    context_files:
+      - ".agents-work/2026-04-13_history-nutrients-navigation/spec.md"
+      - ".agents-work/2026-04-13_history-nutrients-navigation/architecture.md"
+      - ".agents-work/2026-04-13_history-nutrients-navigation/acceptance.json"
+      - ".agents-work/2026-04-13_history-nutrients-navigation/design-specs/design-spec-history-nutrients-ui.md"
+    files_expected:
+      - "app/src/androidTest/java/**/HistoryEndToEnd*Test.kt"
+      - "app/src/androidTest/java/**/DashboardToHistory*Test.kt"
+      - "app/src/test/java/**/Performance*Test.kt"
+      - "README.md"
+    acceptance_checks:
+      - "cmd: ./gradlew :app:testDebugUnitTest :app:connectedDebugAndroidTest"
+      - "manual: Run AC-001 through AC-015 checklist and capture pass/fail evidence"
+      - "manual: Verify swipe responsiveness <300ms and 90-day load <500ms on target device (AC-015)"
+      - "manual: Confirm persistence after force-close/restart and no regressions in Meal/Dashboard/Settings tabs (AC-011)"
+    risk_flags:
+      - "perf"
+    definition_of_done:
+      - "All ACs mapped to executable/manual checks"
+      - "Residual risks documented if any benchmark misses targets"
+      - "Meets AC-001 through AC-015"
+    done_when:
+      - "Tests added/updated"
+      - "No lint errors"
+      - "Meets AC-001 through AC-015 references"

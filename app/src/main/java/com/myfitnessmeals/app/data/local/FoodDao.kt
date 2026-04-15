@@ -21,6 +21,9 @@ interface FoodDao {
     @Query("SELECT * FROM food_item WHERE id = :id")
     suspend fun getById(id: Long): FoodItemEntity?
 
+    @Query("SELECT * FROM food_item WHERE id IN (:ids)")
+    suspend fun getByIds(ids: List<Long>): List<FoodItemEntity>
+
     @Query("SELECT * FROM food_item WHERE barcode = :barcode LIMIT 1")
     suspend fun getByBarcode(barcode: String): FoodItemEntity?
 

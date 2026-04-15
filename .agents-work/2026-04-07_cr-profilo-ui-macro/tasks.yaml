@@ -1,0 +1,265 @@
+project:
+  name: "CR profilo UI macro fixes"
+  definition_of_done:
+    - "CI green"
+    - "AC met"
+    - "README updated"
+
+tasks:
+  - id: meta
+    status: completed
+    type: fix
+    title: "Critical hotfix: bottom bar tab interactions and settings label wrapping"
+    depends_on: []
+    goal: "Fix tab click reactivity regression, keep settings tab label single-line, and move quick-add action inline with bottom tabs."
+    non_goals:
+      - "Changing dashboard/meal/history/settings business logic"
+      - "Altering profile calorie logic"
+      - "Broad UI redesign"
+    context_files:
+      - ".agents-work/2026-04-07_cr-profilo-ui-macro/spec.md"
+      - ".agents-work/2026-04-07_cr-profilo-ui-macro/tasks.yaml"
+      - ".agents-work/2026-04-07_cr-profilo-ui-macro/architecture.md"
+      - ".agents-work/2026-04-07_cr-profilo-ui-macro/design-specs/design-spec-profile-fab-macro.md"
+    files_expected:
+      - "app/src/main/java/com/myfitnessmeals/app/MainActivity.kt"
+      - "app/src/androidTest/java/com/myfitnessmeals/app/main/MainFabAlignmentUiTest.kt"
+      - "app/src/androidTest/java/com/myfitnessmeals/app/main/MainTabNavigationUiTest.kt"
+    acceptance_checks:
+      - "cmd: ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.myfitnessmeals.app.dashboard.DashboardHistoryFlowSmokeTest,com.myfitnessmeals.app.settings.SettingsThemePreferenceSmokeTest,com.myfitnessmeals.app.settings.GarminSettingsFlowSmokeTest"
+      - "cmd: ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.myfitnessmeals.app.main.MainFabAlignmentUiTest"
+      - "manual: in app, tab clicks change screen again"
+      - "manual: settings label stays on one line"
+    risk_flags:
+      - "breaking-change"
+    done_when:
+      - "Bottom tabs are responsive and navigate correctly"
+      - "Center quick-add action is inline with tab icons"
+      - "Settings label remains one line"
+
+  - id: T-001
+    status: completed
+    type: feat
+    title: "Expose and persist profile calorie estimate in onboarding"
+    depends_on: []
+    goal: "Render a clear onboarding calorie estimate block, keep estimate reactive to profile inputs, and persist the same computed target on submit."
+    non_goals:
+      - "Changing GoalComputationService formulas"
+      - "Adding new required profile fields"
+      - "Redesigning onboarding layout outside estimate emphasis"
+    context_files:
+      - ".agents-work/2026-04-07_cr-profilo-ui-macro/spec.md"
+      - ".agents-work/2026-04-07_cr-profilo-ui-macro/architecture.md"
+      - ".agents-work/2026-04-07_cr-profilo-ui-macro/design-specs/design-spec-profile-fab-macro.md"
+      - ".agents-work/2026-04-07_cr-profilo-ui-macro/acceptance.json"
+    files_expected:
+      - "app/src/main/java/com/myfitnessmeals/app/ui/onboarding/OnboardingRoute.kt"
+      - "app/src/main/java/com/myfitnessmeals/app/ui/onboarding/OnboardingViewModel.kt"
+      - "app/src/main/res/values/strings.xml"
+      - "app/src/main/res/values-it/strings.xml"
+    acceptance_checks:
+      - "cmd: ./gradlew :app:testDebugUnitTest"
+      - "manual: In onboarding with valid profile inputs, estimate is visible before primary CTA with kcal/day (kcal/giorno in Italian resources)."
+      - "manual: Changing profile values updates estimate without refresh action."
+      - "manual: After complete onboarding, persisted target matches last displayed estimate."
+      - "manual: After process recreation or screen restore, estimate remains coherent with current state."
+    risk_flags:
+      - "none"
+    done_when:
+      - "No onboarding regression outside profile estimate display behavior"
+      - "Estimate visible state and placeholder state both implemented"
+      - "Meets AC-001 and AC-004"
+
+  - id: T-002
+    status: completed
+    type: fix
+    title: "Correct center FAB optical and geometric alignment"
+    depends_on: []
+    goal: "Adjust scaffold constants and slot layout so center FAB aligns with viewport center and bottom-nav gap across common phone sizes."
+    non_goals:
+      - "Changing bottom navigation information architecture"
+      - "Changing FAB action semantics"
+      - "Adding new animation patterns"
+    context_files:
+      - ".agents-work/2026-04-07_cr-profilo-ui-macro/spec.md"
+      - ".agents-work/2026-04-07_cr-profilo-ui-macro/architecture.md"
+      - ".agents-work/2026-04-07_cr-profilo-ui-macro/design-specs/design-spec-profile-fab-macro.md"
+      - ".agents-work/2026-04-07_cr-profilo-ui-macro/acceptance.json"
+    files_expected:
+      - "app/src/main/java/com/myfitnessmeals/app/MainActivity.kt"
+      - "app/src/main/res/values/dimens.xml"
+    acceptance_checks:
+      - "cmd: ./gradlew :app:assembleDebug"
+      - "manual: On 320dp, 360dp, 411dp widths and landscape phone, FAB is centered and not clipped."
+      - "manual: FAB center visually matches nav gap center; no overlap blocks nav labels/icons."
+      - "manual: FAB touch target remains at least 48dp."
+    risk_flags:
+      - "none"
+    done_when:
+      - "Scaffold/FAB alignment constants are consolidated in one place"
+      - "No navigation behavior regressions"
+      - "Meets AC-002"
+
+  - id: T-003
+    status: in-progress
+    type: fix
+    title: "Remove duplicated percent-symbol behavior in macro fields"
+    depends_on: []
+    goal: "Enforce numeric canonical input and idempotent single-% presentation for onboarding/settings macro fields in all interaction states."
+    non_goals:
+      - "Changing macro sum business rule (must total 100)"
+      - "Persisting display symbols in repository"
+      - "Rewriting settings or onboarding screen structure"
+    context_files:
+      - ".agents-work/2026-04-07_cr-profilo-ui-macro/spec.md"
+      - ".agents-work/2026-04-07_cr-profilo-ui-macro/architecture.md"
+      - ".agents-work/2026-04-07_cr-profilo-ui-macro/design-specs/design-spec-profile-fab-macro.md"
+      - ".agents-work/2026-04-07_cr-profilo-ui-macro/acceptance.json"
+    files_expected:
+      - "app/src/main/java/com/myfitnessmeals/app/ui/common/input/PercentFieldFormatter.kt"
+      - "app/src/main/java/com/myfitnessmeals/app/ui/onboarding/OnboardingRoute.kt"
+      - "app/src/main/java/com/myfitnessmeals/app/ui/settings/SettingsRoute.kt"
+      - "app/src/main/res/values/strings.xml"
+      - "app/src/main/res/values-it/strings.xml"
+    acceptance_checks:
+      - "cmd: ./gradlew :app:testDebugUnitTest"
+      - "manual: Typing, pasting (including 40%, 40%%), focus changes, and recomposition never produce duplicated % in macro fields."
+      - "manual: Prefilled values from persisted state (numeric or legacy suffixed) normalize to a single-% visual representation."
+      - "manual: Empty and zero macro values behave correctly without forced duplicated symbols."
+    risk_flags:
+      - "none"
+    done_when:
+      - "A single source-of-truth formatting strategy is applied to onboarding and settings macro fields"
+      - "Parsing/storage paths remain numeric-only"
+      - "Meets AC-003 and AC-006"
+
+  - id: T-004
+    status: not-started
+    type: test
+    title: "Add targeted automated coverage for estimate and percent formatting behavior"
+    depends_on:
+      - "T-001"
+      - "T-003"
+    goal: "Add or update unit/UI tests to lock reactive estimate behavior, state restoration expectations, and single-% idempotence logic."
+    non_goals:
+      - "Building a full end-to-end suite"
+      - "Adding unrelated snapshot/golden infrastructure"
+      - "Refactoring production code beyond testability hooks required by these CR items"
+    context_files:
+      - ".agents-work/2026-04-07_cr-profilo-ui-macro/spec.md"
+      - ".agents-work/2026-04-07_cr-profilo-ui-macro/architecture.md"
+      - ".agents-work/2026-04-07_cr-profilo-ui-macro/acceptance.json"
+      - ".agents-work/2026-04-07_cr-profilo-ui-macro/design-specs/design-spec-profile-fab-macro.md"
+    files_expected:
+      - "app/src/test/java/com/myfitnessmeals/app/ui/common/input/PercentFieldFormatterTest.kt"
+      - "app/src/test/java/com/myfitnessmeals/app/ui/onboarding/OnboardingViewModelTest.kt"
+      - "app/src/androidTest/java/com/myfitnessmeals/app/ui/onboarding/OnboardingEstimateUiTest.kt"
+      - "app/src/androidTest/java/com/myfitnessmeals/app/ui/settings/MacroPercentUiTest.kt"
+    acceptance_checks:
+      - "cmd: ./gradlew :app:testDebugUnitTest"
+      - "cmd: ./gradlew :app:connectedDebugAndroidTest"
+      - "manual: Test cases explicitly cover paste/rebind/focus-cycle idempotence for percent fields."
+      - "manual: Test cases verify estimate block visibility and value consistency after state restore."
+    risk_flags:
+      - "perf"
+    done_when:
+      - "Automated tests cover the primary failure modes from EC-002, EC-003, EC-006, EC-008"
+      - "No flaky test behavior introduced"
+      - "Meets AC-001, AC-003, and AC-006 verification intents"
+
+  - id: T-005
+    status: not-started
+    type: test
+    title: "Execute gate-friendly verification matrix for FAB and macro UX"
+    depends_on:
+      - "T-002"
+      - "T-003"
+    goal: "Run focused build/tests and manual matrix checks required by acceptance criteria across supported layout/state combinations."
+    non_goals:
+      - "Broad exploratory testing outside CR scope"
+      - "Changing implementation during this verification task except minimal test harness fixes"
+      - "Performance benchmarking beyond responsiveness sanity checks"
+    context_files:
+      - ".agents-work/2026-04-07_cr-profilo-ui-macro/spec.md"
+      - ".agents-work/2026-04-07_cr-profilo-ui-macro/acceptance.json"
+      - ".agents-work/2026-04-07_cr-profilo-ui-macro/design-specs/design-spec-profile-fab-macro.md"
+    files_expected:
+      - ".agents-work/2026-04-07_cr-profilo-ui-macro/report.md"
+    acceptance_checks:
+      - "cmd: ./gradlew :app:assembleDebug :app:testDebugUnitTest"
+      - "manual: Validate FAB alignment matrix (320dp, 360dp, 411dp, landscape) with no clipping/overlap."
+      - "manual: Validate single-% behavior matrix for initial, edited, restored, and legacy-prefilled values."
+      - "manual: Validate onboarding estimate readability and Italian intent copy."
+    risk_flags:
+      - "none"
+    done_when:
+      - "Verification evidence is captured in session report"
+      - "No unresolved acceptance check in AC-002/AC-003/AC-004"
+      - "All checks are reproducible from documented commands/manual steps"
+
+  - id: T-006
+    status: completed
+    type: docs
+    title: "Update README and session documentation for CR behavior"
+    depends_on:
+      - "T-001"
+      - "T-002"
+      - "T-003"
+      - "T-004"
+      - "T-005"
+    goal: "Document final user-visible behavior, validation commands, and constraints for the profile estimate, FAB alignment, and macro-percent fixes."
+    non_goals:
+      - "Rewriting unrelated product documentation"
+      - "Changing release process documentation outside this CR"
+      - "Adding architecture changes not implemented"
+    context_files:
+      - ".agents-work/2026-04-07_cr-profilo-ui-macro/spec.md"
+      - ".agents-work/2026-04-07_cr-profilo-ui-macro/acceptance.json"
+      - ".agents-work/2026-04-07_cr-profilo-ui-macro/architecture.md"
+    files_expected:
+      - "README.md"
+      - ".agents-work/2026-04-07_cr-profilo-ui-macro/report.md"
+    acceptance_checks:
+      - "manual: README references profile calorie estimate behavior and macro percent formatting expectations."
+      - "manual: Session report summarizes executed checks and outcomes for all three CR points."
+    risk_flags:
+      - "none"
+    done_when:
+      - "Documentation reflects shipped behavior and verification steps"
+      - "Project-level DoD item 'README updated' is satisfied"
+      - "Meets AC-008 traceability requirements"
+
+  - id: T-007
+    status: completed
+    type: feat
+    title: "Enable profile editing and live calorie estimate in Settings"
+    depends_on:
+      - "T-001"
+    goal: "Allow editing age/weight/goal/activity in Settings and show a live daily calorie estimate computed from profile values."
+    non_goals:
+      - "Changing GoalComputationService formulas"
+      - "Reworking onboarding navigation"
+      - "Introducing new persistence entities"
+    context_files:
+      - ".agents-work/2026-04-07_cr-profilo-ui-macro/spec.md"
+      - ".agents-work/2026-04-07_cr-profilo-ui-macro/architecture.md"
+      - ".agents-work/2026-04-07_cr-profilo-ui-macro/design-specs/design-spec-profile-fab-macro.md"
+      - ".agents-work/2026-04-07_cr-profilo-ui-macro/tasks.yaml"
+      - ".agents-work/2026-04-07_cr-profilo-ui-macro/acceptance.json"
+    files_expected:
+      - "app/src/main/java/com/myfitnessmeals/app/ui/settings/SettingsRoute.kt"
+      - "app/src/main/res/values/strings.xml"
+      - "app/src/main/res/values-it/strings.xml"
+      - "README.md"
+      - ".agents-work/2026-04-07_cr-profilo-ui-macro/report.md"
+    acceptance_checks:
+      - "cmd: ./gradlew :app:testDebugUnitTest --tests com.myfitnessmeals.app.ui.onboarding.OnboardingViewModelTest"
+      - "manual: In settings, age/weight/activity/goal inputs are editable and persist after save."
+      - "manual: Calorie estimate in settings updates live when profile inputs change."
+      - "manual: Italian labels for profile + calorie estimate are visible and coherent."
+    risk_flags:
+      - "none"
+    done_when:
+      - "Settings exposes editable profile inputs required for calorie estimation"
+      - "Settings computes and displays daily calorie estimate from profile inputs"
+      - "README and session report describe the new settings behavior"

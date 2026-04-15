@@ -14,7 +14,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         DailySummaryEntity::class,
         ProviderConnectionEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -230,6 +230,50 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL(
                     "CREATE UNIQUE INDEX IF NOT EXISTS index_food_item_canonical_external_key ON food_item(canonical_external_key)"
                 )
+            }
+        }
+
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE food_item ADD COLUMN saturated_fat_100 REAL")
+                db.execSQL("ALTER TABLE food_item ADD COLUMN sugar_100 REAL")
+                db.execSQL("ALTER TABLE food_item ADD COLUMN iron_100 REAL")
+                db.execSQL("ALTER TABLE food_item ADD COLUMN calcium_100 REAL")
+                db.execSQL("ALTER TABLE food_item ADD COLUMN magnesium_100 REAL")
+                db.execSQL("ALTER TABLE food_item ADD COLUMN zinc_100 REAL")
+                db.execSQL("ALTER TABLE food_item ADD COLUMN vitamin_c_100 REAL")
+                db.execSQL("ALTER TABLE food_item ADD COLUMN vitamin_d_100 REAL")
+                db.execSQL("ALTER TABLE food_item ADD COLUMN vitamin_b12_100 REAL")
+
+                db.execSQL("ALTER TABLE meal_entry ADD COLUMN saturated_fat_total REAL")
+                db.execSQL("ALTER TABLE meal_entry ADD COLUMN sugar_total REAL")
+                db.execSQL("ALTER TABLE meal_entry ADD COLUMN iron_total REAL")
+                db.execSQL("ALTER TABLE meal_entry ADD COLUMN calcium_total REAL")
+                db.execSQL("ALTER TABLE meal_entry ADD COLUMN magnesium_total REAL")
+                db.execSQL("ALTER TABLE meal_entry ADD COLUMN zinc_total REAL")
+                db.execSQL("ALTER TABLE meal_entry ADD COLUMN vitamin_c_total REAL")
+                db.execSQL("ALTER TABLE meal_entry ADD COLUMN vitamin_d_total REAL")
+                db.execSQL("ALTER TABLE meal_entry ADD COLUMN vitamin_b12_total REAL")
+
+                db.execSQL("ALTER TABLE nutrition_override ADD COLUMN saturated_fat_100 REAL")
+                db.execSQL("ALTER TABLE nutrition_override ADD COLUMN sugar_100 REAL")
+                db.execSQL("ALTER TABLE nutrition_override ADD COLUMN iron_100 REAL")
+                db.execSQL("ALTER TABLE nutrition_override ADD COLUMN calcium_100 REAL")
+                db.execSQL("ALTER TABLE nutrition_override ADD COLUMN magnesium_100 REAL")
+                db.execSQL("ALTER TABLE nutrition_override ADD COLUMN zinc_100 REAL")
+                db.execSQL("ALTER TABLE nutrition_override ADD COLUMN vitamin_c_100 REAL")
+                db.execSQL("ALTER TABLE nutrition_override ADD COLUMN vitamin_d_100 REAL")
+                db.execSQL("ALTER TABLE nutrition_override ADD COLUMN vitamin_b12_100 REAL")
+
+                db.execSQL("ALTER TABLE daily_summary ADD COLUMN saturated_fat_total REAL")
+                db.execSQL("ALTER TABLE daily_summary ADD COLUMN sugar_total REAL")
+                db.execSQL("ALTER TABLE daily_summary ADD COLUMN iron_total REAL")
+                db.execSQL("ALTER TABLE daily_summary ADD COLUMN calcium_total REAL")
+                db.execSQL("ALTER TABLE daily_summary ADD COLUMN magnesium_total REAL")
+                db.execSQL("ALTER TABLE daily_summary ADD COLUMN zinc_total REAL")
+                db.execSQL("ALTER TABLE daily_summary ADD COLUMN vitamin_c_total REAL")
+                db.execSQL("ALTER TABLE daily_summary ADD COLUMN vitamin_d_total REAL")
+                db.execSQL("ALTER TABLE daily_summary ADD COLUMN vitamin_b12_total REAL")
             }
         }
     }

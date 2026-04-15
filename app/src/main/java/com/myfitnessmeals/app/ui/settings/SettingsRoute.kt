@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.PrivacyTip
 import androidx.compose.material.icons.filled.Watch
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -34,23 +35,32 @@ import com.myfitnessmeals.app.R
 import com.myfitnessmeals.app.data.repository.AppThemePreference
 import com.myfitnessmeals.app.data.repository.UserSettings
 import com.myfitnessmeals.app.data.repository.UserSettingsRepository
+import com.myfitnessmeals.app.domain.service.ActivityLevel
 import com.myfitnessmeals.app.domain.service.GoalComputationService
+import com.myfitnessmeals.app.domain.service.GoalProfileInput
+import com.myfitnessmeals.app.domain.service.GoalType
 import com.myfitnessmeals.app.domain.usecase.DeleteAllUserDataUseCase
 import com.myfitnessmeals.app.domain.usecase.ExportUserDataUseCase
 import com.myfitnessmeals.app.integration.garmin.GarminActionResult
 import com.myfitnessmeals.app.integration.garmin.GarminIntegrationService
 import com.myfitnessmeals.app.integration.garmin.GarminSyncMode
+import com.myfitnessmeals.app.ui.common.input.normalizePercentInput
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import kotlin.math.roundToInt
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
 data class SettingsUiState(
-    val targetKcalInput: String = "",
+    val ageInput: String = "30",
+    val weightInput: String = "75",
+    val activityLevel: ActivityLevel = ActivityLevel.MODERATE,
+    val goalType: GoalType = GoalType.MAINTAIN,
+    val computedTargetKcal: Double? = null,
     val carbPctInput: String = "40",
     val fatPctInput: String = "30",
     val proteinPctInput: String = "30",
@@ -79,12 +89,17 @@ class SettingsViewModel(
     init {
         val settings = settingsRepository.getSettings()
         _uiState.update {
-            it.copy(
-                targetKcalInput = settings.targetKcal.toInt().toString(),
-                carbPctInput = settings.carbPct.toString(),
-                fatPctInput = settings.fatPct.toString(),
-                proteinPctInput = settings.proteinPct.toString(),
-                themePreference = settings.themePreference,
+            computeStateWithTarget(
+                it.copy(
+                    ageInput = settings.age.toString(),
+                    weightInput = settings.weightKg.toString(),
+                    activityLevel = settings.activityLevel,
+                    goalType = settings.goalType,
+                    carbPctInput = normalizePercentInput(settings.carbPct.toString()),
+                    fatPctInput = normalizePercentInput(settings.fatPct.toString()),
+                    proteinPctInput = normalizePercentInput(settings.proteinPct.toString()),
+                    themePreference = settings.themePreference,
+                )
             )
         }
         viewModelScope.launch {
@@ -92,10 +107,13 @@ class SettingsViewModel(
         }
     }
 
-    fun onTargetChanged(value: String) = _uiState.update { it.copy(targetKcalInput = value) }
-    fun onCarbChanged(value: String) = _uiState.update { it.copy(carbPctInput = value) }
-    fun onFatChanged(value: String) = _uiState.update { it.copy(fatPctInput = value) }
-    fun onProteinChanged(value: String) = _uiState.update { it.copy(proteinPctInput = value) }
+    fun onAgeChanged(value: String) = _uiState.update { computeStateWithTarget(it.copy(ageInput = value)) }
+    fun onWeightChanged(value: String) = _uiState.update { computeStateWithTarget(it.copy(weightInput = value)) }
+    fun onActivityChanged(value: ActivityLevel) = _uiState.update { computeStateWithTarget(it.copy(activityLevel = value)) }
+    fun onGoalChanged(value: GoalType) = _uiState.update { computeStateWithTarget(it.copy(goalType = value)) }
+    fun onCarbChanged(value: String) = _uiState.update { it.copy(carbPctInput = normalizePercentInput(value)) }
+    fun onFatChanged(value: String) = _uiState.update { it.copy(fatPctInput = normalizePercentInput(value)) }
+    fun onProteinChanged(value: String) = _uiState.update { it.copy(proteinPctInput = normalizePercentInput(value)) }
     fun onThemeChanged(value: AppThemePreference) = _uiState.update { it.copy(themePreference = value) }
     fun onGarminAuthCodeChanged(value: String) = _uiState.update { it.copy(garminAuthCodeInput = value) }
 
@@ -171,12 +189,17 @@ class SettingsViewModel(
                     }
                     val settings = settingsRepository.getSettings()
                     _uiState.update {
-                        it.copy(
-                            targetKcalInput = settings.targetKcal.toInt().toString(),
-                            carbPctInput = settings.carbPct.toString(),
-                            fatPctInput = settings.fatPct.toString(),
-                            proteinPctInput = settings.proteinPct.toString(),
-                            themePreference = settings.themePreference,
+                        computeStateWithTarget(
+                            it.copy(
+                                ageInput = settings.age.toString(),
+                                weightInput = settings.weightKg.toString(),
+                                activityLevel = settings.activityLevel,
+                                goalType = settings.goalType,
+                                carbPctInput = normalizePercentInput(settings.carbPct.toString()),
+                                fatPctInput = normalizePercentInput(settings.fatPct.toString()),
+                                proteinPctInput = normalizePercentInput(settings.proteinPct.toString()),
+                                themePreference = settings.themePreference,
+                            )
                         )
                     }
                     refreshGarminStatus()
@@ -195,13 +218,15 @@ class SettingsViewModel(
 
     fun saveSettings() {
         val state = _uiState.value
-        val target = state.targetKcalInput.toDoubleOrNull()
-        val carb = state.carbPctInput.toIntOrNull()
-        val fat = state.fatPctInput.toIntOrNull()
-        val protein = state.proteinPctInput.toIntOrNull()
+        val age = state.ageInput.toIntOrNull()
+        val weight = parseWeightInput(state.weightInput)
+        val target = state.computedTargetKcal ?: computeTargetOrNull(state)
+        val carb = normalizePercentInput(state.carbPctInput).toIntOrNull()
+        val fat = normalizePercentInput(state.fatPctInput).toIntOrNull()
+        val protein = normalizePercentInput(state.proteinPctInput).toIntOrNull()
 
-        if (target == null || carb == null || fat == null || protein == null) {
-            _uiState.update { it.copy(errorMessage = "Invalid numeric values", saveMessage = null) }
+        if (age == null || weight == null || carb == null || fat == null || protein == null || target == null) {
+            _uiState.update { it.copy(errorMessage = "Invalid profile", saveMessage = null) }
             return
         }
         if (!goalComputationService.validateMacroSplit(carb, fat, protein)) {
@@ -213,12 +238,12 @@ class SettingsViewModel(
         settingsRepository.saveSettings(
             UserSettings(
                 onboardingCompleted = existing.onboardingCompleted,
-                age = existing.age,
+                age = age,
                 heightCm = existing.heightCm,
-                weightKg = existing.weightKg,
+                weightKg = weight,
                 sex = existing.sex,
-                activityLevel = existing.activityLevel,
-                goalType = existing.goalType,
+                activityLevel = state.activityLevel,
+                goalType = state.goalType,
                 targetKcal = target,
                 carbPct = carb,
                 fatPct = fat,
@@ -226,7 +251,36 @@ class SettingsViewModel(
                 themePreference = state.themePreference,
             )
         )
-        _uiState.update { it.copy(errorMessage = null, saveMessage = "Settings saved") }
+        _uiState.update { computeStateWithTarget(it.copy(errorMessage = null, saveMessage = "Settings saved")) }
+    }
+
+    private fun computeStateWithTarget(state: SettingsUiState): SettingsUiState {
+        return state.copy(computedTargetKcal = computeTargetOrNull(state))
+    }
+
+    private fun computeTargetOrNull(state: SettingsUiState): Double? {
+        val age = state.ageInput.toIntOrNull() ?: return null
+        val weight = parseWeightInput(state.weightInput) ?: return null
+        val existing = settingsRepository.getSettings()
+
+        return try {
+            goalComputationService.computeTargetKcal(
+                GoalProfileInput(
+                    age = age,
+                    heightCm = existing.heightCm,
+                    weightKg = weight,
+                    sex = existing.sex,
+                    activityLevel = state.activityLevel,
+                    goalType = state.goalType,
+                )
+            )
+        } catch (_: IllegalArgumentException) {
+            null
+        }
+    }
+
+    private fun parseWeightInput(value: String): Double? {
+        return value.replace(',', '.').toDoubleOrNull()
     }
 
     private suspend fun refreshGarminStatus() {
@@ -289,7 +343,10 @@ fun SettingsRoute(viewModel: SettingsViewModel) {
     val state by viewModel.uiState.collectAsState()
     SettingsScreen(
         state = state,
-        onTargetChanged = viewModel::onTargetChanged,
+        onAgeChanged = viewModel::onAgeChanged,
+        onWeightChanged = viewModel::onWeightChanged,
+        onActivityChanged = viewModel::onActivityChanged,
+        onGoalChanged = viewModel::onGoalChanged,
         onCarbChanged = viewModel::onCarbChanged,
         onFatChanged = viewModel::onFatChanged,
         onProteinChanged = viewModel::onProteinChanged,
@@ -308,7 +365,10 @@ fun SettingsRoute(viewModel: SettingsViewModel) {
 @Composable
 fun SettingsScreen(
     state: SettingsUiState,
-    onTargetChanged: (String) -> Unit,
+    onAgeChanged: (String) -> Unit,
+    onWeightChanged: (String) -> Unit,
+    onActivityChanged: (ActivityLevel) -> Unit,
+    onGoalChanged: (GoalType) -> Unit,
     onCarbChanged: (String) -> Unit,
     onFatChanged: (String) -> Unit,
     onProteinChanged: (String) -> Unit,
@@ -322,6 +382,12 @@ fun SettingsScreen(
     onConfirmDeleteData: () -> Unit,
     onSave: () -> Unit,
 ) {
+    val estimateValueText = state.computedTargetKcal?.let {
+        roundSettingsEstimateKcalForDisplay(it)
+    }?.let {
+        stringResource(R.string.onboarding_estimated_target_value, it)
+    } ?: stringResource(R.string.onboarding_estimated_target_placeholder)
+
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background,
@@ -335,10 +401,118 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(stringResource(R.string.settings_title), style = MaterialTheme.typography.headlineSmall)
-            OutlinedTextField(state.targetKcalInput, onTargetChanged, label = { Text(stringResource(R.string.settings_target_kcal)) }, modifier = Modifier.fillMaxWidth().testTag("settings_target"))
-            OutlinedTextField(state.carbPctInput, onCarbChanged, label = { Text(stringResource(R.string.settings_carb_pct)) }, modifier = Modifier.fillMaxWidth().testTag("settings_carb"))
-            OutlinedTextField(state.fatPctInput, onFatChanged, label = { Text(stringResource(R.string.settings_fat_pct)) }, modifier = Modifier.fillMaxWidth().testTag("settings_fat"))
-            OutlinedTextField(state.proteinPctInput, onProteinChanged, label = { Text(stringResource(R.string.settings_protein_pct)) }, modifier = Modifier.fillMaxWidth().testTag("settings_protein"))
+            Text(stringResource(R.string.settings_profile_section), style = MaterialTheme.typography.titleMedium)
+            OutlinedTextField(
+                value = state.ageInput,
+                onValueChange = onAgeChanged,
+                label = { Text(stringResource(R.string.settings_age)) },
+                modifier = Modifier.fillMaxWidth().testTag("settings_age"),
+                singleLine = true,
+            )
+            OutlinedTextField(
+                value = state.weightInput,
+                onValueChange = onWeightChanged,
+                label = { Text(stringResource(R.string.settings_weight_kg)) },
+                modifier = Modifier.fillMaxWidth().testTag("settings_weight"),
+                singleLine = true,
+            )
+
+            Text(stringResource(R.string.settings_activity_level), style = MaterialTheme.typography.titleMedium)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                ThemeChoiceButton(
+                    label = stringResource(R.string.settings_activity_sedentary),
+                    selected = state.activityLevel == ActivityLevel.SEDENTARY,
+                    tag = "settings_activity_sedentary",
+                    onClick = { onActivityChanged(ActivityLevel.SEDENTARY) },
+                )
+                ThemeChoiceButton(
+                    label = stringResource(R.string.settings_activity_light),
+                    selected = state.activityLevel == ActivityLevel.LIGHT,
+                    tag = "settings_activity_light",
+                    onClick = { onActivityChanged(ActivityLevel.LIGHT) },
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                ThemeChoiceButton(
+                    label = stringResource(R.string.settings_activity_moderate),
+                    selected = state.activityLevel == ActivityLevel.MODERATE,
+                    tag = "settings_activity_moderate",
+                    onClick = { onActivityChanged(ActivityLevel.MODERATE) },
+                )
+                ThemeChoiceButton(
+                    label = stringResource(R.string.settings_activity_active),
+                    selected = state.activityLevel == ActivityLevel.ACTIVE,
+                    tag = "settings_activity_active",
+                    onClick = { onActivityChanged(ActivityLevel.ACTIVE) },
+                )
+            }
+
+            Text(stringResource(R.string.settings_goal_type), style = MaterialTheme.typography.titleMedium)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                ThemeChoiceButton(
+                    label = stringResource(R.string.settings_goal_lose),
+                    selected = state.goalType == GoalType.LOSE,
+                    tag = "settings_goal_lose",
+                    onClick = { onGoalChanged(GoalType.LOSE) },
+                )
+                ThemeChoiceButton(
+                    label = stringResource(R.string.settings_goal_maintain),
+                    selected = state.goalType == GoalType.MAINTAIN,
+                    tag = "settings_goal_maintain",
+                    onClick = { onGoalChanged(GoalType.MAINTAIN) },
+                )
+                ThemeChoiceButton(
+                    label = stringResource(R.string.settings_goal_gain),
+                    selected = state.goalType == GoalType.GAIN,
+                    tag = "settings_goal_gain",
+                    onClick = { onGoalChanged(GoalType.GAIN) },
+                )
+            }
+
+            Card(modifier = Modifier.fillMaxWidth().testTag("settings_target_card")) {
+                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = stringResource(R.string.settings_estimated_daily_calories),
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                    Text(
+                        text = estimateValueText,
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.testTag("settings_target"),
+                    )
+                }
+            }
+
+            OutlinedTextField(
+                value = normalizePercentInput(state.carbPctInput),
+                onValueChange = onCarbChanged,
+                label = { Text(stringResource(R.string.settings_carb_pct)) },
+                suffix = { if (state.carbPctInput.isNotEmpty()) Text("%") },
+                modifier = Modifier.fillMaxWidth().testTag("settings_carb"),
+            )
+            OutlinedTextField(
+                value = normalizePercentInput(state.fatPctInput),
+                onValueChange = onFatChanged,
+                label = { Text(stringResource(R.string.settings_fat_pct)) },
+                suffix = { if (state.fatPctInput.isNotEmpty()) Text("%") },
+                modifier = Modifier.fillMaxWidth().testTag("settings_fat"),
+            )
+            OutlinedTextField(
+                value = normalizePercentInput(state.proteinPctInput),
+                onValueChange = onProteinChanged,
+                label = { Text(stringResource(R.string.settings_protein_pct)) },
+                suffix = { if (state.proteinPctInput.isNotEmpty()) Text("%") },
+                modifier = Modifier.fillMaxWidth().testTag("settings_protein"),
+            )
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(Icons.Filled.Palette, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
@@ -468,3 +642,5 @@ private fun ThemeChoiceButton(
         }
     }
 }
+
+internal fun roundSettingsEstimateKcalForDisplay(value: Double): Int = value.roundToInt()

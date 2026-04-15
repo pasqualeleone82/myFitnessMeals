@@ -1,0 +1,8 @@
+{
+  "status": "OK",
+  "summary": "HistoryViewModel acceptance command passed with 5/5 tests. Manual AC-002/003/009 evidence deferred to final integration.",
+  "artifacts": {
+    "test_results": {"passed": 5, "failed": 0, "skipped": 0},
+    "commands_to_run": ["./gradlew :app:testDebugUnitTest --tests '*HistoryViewModel*'"]
+  }
+}

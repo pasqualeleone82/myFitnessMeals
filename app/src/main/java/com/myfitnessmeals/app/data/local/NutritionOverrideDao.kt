@@ -13,6 +13,9 @@ interface NutritionOverrideDao {
     @Query("SELECT * FROM nutrition_override WHERE food_id = :foodId")
     suspend fun getByFoodId(foodId: Long): NutritionOverrideEntity?
 
+    @Query("SELECT * FROM nutrition_override WHERE food_id IN (:foodIds)")
+    suspend fun getByFoodIds(foodIds: List<Long>): List<NutritionOverrideEntity>
+
     @Query("DELETE FROM nutrition_override WHERE food_id = :foodId")
     suspend fun deleteByFoodId(foodId: Long): Int
 

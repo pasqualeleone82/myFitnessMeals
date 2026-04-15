@@ -27,6 +27,15 @@ data class MealFoodCandidate(
     val carb100: Double?,
     val fat100: Double?,
     val protein100: Double?,
+    val saturatedFat100: Double? = null,
+    val sugar100: Double? = null,
+    val iron100: Double? = null,
+    val calcium100: Double? = null,
+    val magnesium100: Double? = null,
+    val zinc100: Double? = null,
+    val vitaminC100: Double? = null,
+    val vitaminD100: Double? = null,
+    val vitaminB12100: Double? = null,
 )
 
 data class MealPreview(
@@ -36,6 +45,15 @@ data class MealPreview(
     val carbTotal: Double,
     val fatTotal: Double,
     val proteinTotal: Double,
+    val saturatedFatTotal: Double?,
+    val sugarTotal: Double?,
+    val ironTotal: Double?,
+    val calciumTotal: Double?,
+    val magnesiumTotal: Double?,
+    val zincTotal: Double?,
+    val vitaminCTotal: Double?,
+    val vitaminDTotal: Double?,
+    val vitaminB12Total: Double?,
     val kcalMissing: Boolean,
     val carbMissing: Boolean,
     val fatMissing: Boolean,
@@ -57,6 +75,15 @@ data class SaveNutritionOverrideCommand(
     val carb100: Double?,
     val fat100: Double?,
     val protein100: Double?,
+    val saturatedFat100: Double? = null,
+    val sugar100: Double? = null,
+    val iron100: Double? = null,
+    val calcium100: Double? = null,
+    val magnesium100: Double? = null,
+    val zinc100: Double? = null,
+    val vitaminC100: Double? = null,
+    val vitaminD100: Double? = null,
+    val vitaminB12100: Double? = null,
     val note: String?,
 )
 
@@ -226,6 +253,15 @@ class BuildMealPreviewUseCase(
             carbTotal = (resolved.carb100 ?: 0.0) * factor,
             fatTotal = (resolved.fat100 ?: 0.0) * factor,
             proteinTotal = (resolved.protein100 ?: 0.0) * factor,
+            saturatedFatTotal = resolved.saturatedFat100?.times(factor),
+            sugarTotal = resolved.sugar100?.times(factor),
+            ironTotal = resolved.iron100?.times(factor),
+            calciumTotal = resolved.calcium100?.times(factor),
+            magnesiumTotal = resolved.magnesium100?.times(factor),
+            zincTotal = resolved.zinc100?.times(factor),
+            vitaminCTotal = resolved.vitaminC100?.times(factor),
+            vitaminDTotal = resolved.vitaminD100?.times(factor),
+            vitaminB12Total = resolved.vitaminB12100?.times(factor),
             kcalMissing = resolved.kcal100 == null,
             carbMissing = resolved.carb100 == null,
             fatMissing = resolved.fat100 == null,
@@ -250,7 +286,21 @@ class SaveNutritionOverrideUseCase(
     suspend operator fun invoke(command: SaveNutritionOverrideCommand) {
         require(command.foodId > 0) { "Food id must be positive" }
 
-        val nutrients = listOf(command.kcal100, command.carb100, command.fat100, command.protein100)
+        val nutrients = listOf(
+            command.kcal100,
+            command.carb100,
+            command.fat100,
+            command.protein100,
+            command.saturatedFat100,
+            command.sugar100,
+            command.iron100,
+            command.calcium100,
+            command.magnesium100,
+            command.zinc100,
+            command.vitaminC100,
+            command.vitaminD100,
+            command.vitaminB12100,
+        )
         require(nutrients.any { it != null }) { "At least one nutrient override is required" }
         nutrients.filterNotNull().forEach { value ->
             require(value >= 0.0) { "Nutrient override must be >= 0" }
@@ -265,6 +315,15 @@ class SaveNutritionOverrideUseCase(
                 carb100 = command.carb100,
                 fat100 = command.fat100,
                 protein100 = command.protein100,
+                saturatedFat100 = command.saturatedFat100,
+                sugar100 = command.sugar100,
+                iron100 = command.iron100,
+                calcium100 = command.calcium100,
+                magnesium100 = command.magnesium100,
+                zinc100 = command.zinc100,
+                vitaminC100 = command.vitaminC100,
+                vitaminD100 = command.vitaminD100,
+                vitaminB12100 = command.vitaminB12100,
                 note = command.note?.trim()?.ifBlank { null },
                 createdAt = existing?.createdAt ?: now,
                 updatedAt = now,
@@ -315,6 +374,15 @@ class SaveMealEntryUseCase(
                     carbTotal = preview.carbTotal,
                     fatTotal = preview.fatTotal,
                     proteinTotal = preview.proteinTotal,
+                    saturatedFatTotal = preview.saturatedFatTotal,
+                    sugarTotal = preview.sugarTotal,
+                    ironTotal = preview.ironTotal,
+                    calciumTotal = preview.calciumTotal,
+                    magnesiumTotal = preview.magnesiumTotal,
+                    zincTotal = preview.zincTotal,
+                    vitaminCTotal = preview.vitaminCTotal,
+                    vitaminDTotal = preview.vitaminDTotal,
+                    vitaminB12Total = preview.vitaminB12Total,
                 )
             )
 
@@ -403,5 +471,14 @@ private fun FoodItemEntity.toCandidate(source: ResolvedSource): MealFoodCandidat
         carb100 = carb100,
         fat100 = fat100,
         protein100 = protein100,
+        saturatedFat100 = saturatedFat100,
+        sugar100 = sugar100,
+        iron100 = iron100,
+        calcium100 = calcium100,
+        magnesium100 = magnesium100,
+        zinc100 = zinc100,
+        vitaminC100 = vitaminC100,
+        vitaminD100 = vitaminD100,
+        vitaminB12100 = vitaminB12100,
     )
 }

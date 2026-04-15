@@ -1,0 +1,75 @@
+{
+  "status": "BLOCKED",
+  "summary": "T-001 migration is additive, null-safe, and correctly wired. One major logic defect in the DAO aggregation query — double-COALESCE coerces all-null enriched fields to 0.0 instead of NULL — must be fixed before T-002 builds display logic on top of it, or AC-004/F6 ('display as N/A if all NULL') becomes impossible to implement without a secondary change. Three minor findings and two nits round out the review. Overall verdict: NEEDS FIXES.",
+  "artifacts": {
+    "review_comments": [
+      {
+        "severity": "major",
+        "category": "Logic",
+        "file": "app/src/main/java/com/myfitnessmeals/app/data/local/MealEntryDao.kt",
+        "line": "33-45",
+        "message": "The enriched-nutrient aggregation uses COALESCE(SUM(COALESCE(col, 0.0)), 0.0). The inner COALESCE converts each NULL to 0 before summing; the outer handles the empty-set case. The net effect is that when every MealEntryEntity row for a date has NULL for an enriched column (i.e., all pre-migration data), the aggregate returns 0.0 — not NULL. This 0.0 is then stored in DailySummaryEntity.saturatedFatTotal (and siblings). When T-002/T-006 display logic checks 'if all enriched totals are null, omit the section / show N/A' (required by spec F6 and AC-004), it will find 0.0 and display '0.0 g' instead of '—'. The NULL semantic the architecture explicitly designed (HistoryDaySnapshot enriched fields are Double?) is discarded at the aggregation boundary before it ever reaches the domain layer. This is a structural defect that will cause every subsequent task to be built on a wrong assumption.",
+        "suggested_fix": "Remove the inner COALESCE from all 9 enriched-nutrient aggregation expressions. Change each one from COALESCE(SUM(COALESCE(col, 0.0)), 0.0) to SUM(col). SUM ignores NULLs and returns NULL when all inputs are NULL or the row set is empty, which is exactly the NULL propagation the downstream domain layer needs. Update MealEntryTotals field types for the 4 base macros to match: since their SQL also uses COALESCE the current Double? declaration is inconsistent — either make those Double (non-null), or change their SQL to SUM(col) as well for uniformity."
+      },
+      {
+        "severity": "minor",
+        "category": "Architecture",
+        "file": "app/src/main/java/com/myfitnessmeals/app/data/local/MealEntryDao.kt",
+        "line": "56-70",
+        "message": "MealEntryTotals data class is declared in the same file as the DAO. The architecture document (T-002 files_expected) designates app/src/main/java/com/myfitnessmeals/app/data/local/projection/*.kt for projection/result classes. Placing it in the DAO file breaks that convention and makes it harder to discover when T-002 implements additional enriched-day projections — risk of a second projection class appearing in a different location or overlapping with this one.",
+        "suggested_fix": "Move MealEntryTotals to its own file under data/local/projection/MealEntryTotals.kt and update the import in MealEntryDao.kt. Establish the projection/ directory now so T-002 follows the same pattern."
+      },
+      {
+        "severity": "minor",
+        "category": "Quality",
+        "file": "app/src/main/java/com/myfitnessmeals/app/data/repository/LocalDiaryRepository.kt and app/src/main/java/com/myfitnessmeals/app/data/repository/LocalFitnessRepository.kt",
+        "line": "LocalDiaryRepository.kt:157-175, LocalFitnessRepository.kt:49-67",
+        "message": "recalculateDailySummaryLocked is fully duplicated across both repositories — identical 50-line function now extended with 13 new enriched-nutrient extraction lines each. The duplication was pre-existing for the base-4 macros, but T-001 made it significantly larger. Any future change to enriched-field handling (e.g., the NULL fix from finding #1) must be applied in both places; one copy will inevitably drift.",
+        "suggested_fix": "No refactor is required now (out of T-001 scope), but flag this for T-003 or a dedicated clean-up task: extract recalculateDailySummary logic into a shared internal helper or a DailySummaryRecalculator service injected into both repositories."
+      },
+      {
+        "severity": "minor",
+        "category": "Logic",
+        "file": "app/src/main/java/com/myfitnessmeals/app/data/local/MealEntryDao.kt",
+        "line": "56-59",
+        "message": "MealEntryTotals declares the base-4 fields (kcalTotal, carbTotal, fatTotal, proteinTotal) as Double? even though the SQL COALESCE(SUM(...), 0.0) guarantees they are never null. Room will return 0.0 (non-null) into a Double? wrapper correctly, so this does not crash, but the nullable type misleads callers: downstream code in recalculateDailySummaryLocked uses totals.kcalTotal ?: 0.0 which is always a no-op. If the SQL is later changed (e.g., to SUM-only per finding #1), an unexpected null would silently become 0.0 rather than surfacing as a logic error.",
+        "suggested_fix": "Declare base-4 fields as Double (non-nullable) to match the SQL guarantee, or change the SQL to SUM(col) (no COALESCE) and keep Double? with explicit null handling. Whichever direction is chosen, make it consistent across all 13 fields."
+      },
+      {
+        "severity": "nit",
+        "category": "Logic",
+        "file": "app/src/androidTest/java/com/myfitnessmeals/app/data/local/AppDatabaseMigrationTest.kt",
+        "line": "entire file",
+        "message": "The androidTest migration suite has only one test (migration_1_2_dedupsDuplicateFoodAndKeepsLatestOverride). No migration_2_3 instrumented test exists; 2→3 coverage lives entirely in the Robolectric unit test. For a task flagged risk_flags: breaking-change, having at least one on-device instrumented test for the new migration (verify all 36 columns exist and are nullable on a real device) would reduce confidence gap between emulator and physical SQLite behavior.",
+        "suggested_fix": "Port migration_2_3_addsEnrichedNutrientColumns_andKeepsExistingRows (or a stripped version of it) to the androidTest suite. The seedVersion2Database and createVersion2Schema helpers from the unit test can be copied verbatim."
+      },
+      {
+        "severity": "nit",
+        "category": "Logic",
+        "file": "app/src/androidTest/java/com/myfitnessmeals/app/dashboard/DashboardHistoryFlowSmokeTest.kt",
+        "line": "80-100",
+        "message": "seedDashboardHistoryData inserts DailySummaryEntity rows without enriched nutrient fields (they default to null). This implicitly tests the backward-compat path for the history screen, but no assertion checks that the history view renders successfully when all enriched fields are null. Once T-006 builds the UI, this seed data will exercise the null-display path automatically, but adding an explicit comment or a separate assert tag check would make intent clear.",
+        "suggested_fix": "No code change required at T-001 level. Leave a TODO comment in the seed helper noting that enriched-nutrient null rendering is exercised here and should be asserted once the enriched UI row is implemented."
+      }
+    ],
+    "checklist_summary": {
+      "security": "OK",
+      "architecture": "issues_found",
+      "logic": "issues_found",
+      "performance": "OK",
+      "quality": "issues_found",
+      "devils_advocate": "issues_found"
+    }
+  },
+  "gates": {
+    "meets_definition_of_done": false,
+    "needs_review": false,
+    "needs_tests": false,
+    "security_concerns": []
+  },
+  "next": {
+    "recommended_agent": "Coder",
+    "recommended_task_id": "T-001",
+    "reason": "Fix the major COALESCE defect in MealEntryDao.getTotalsForDate (remove inner COALESCE from all 9 enriched-nutrient expressions) and move MealEntryTotals to projection/. Then re-submit T-001 for a second reviewer pass before T-002 begins."
+  }
+}

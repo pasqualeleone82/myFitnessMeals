@@ -7,5 +7,7 @@ interface OverrideRepository {
 
     suspend fun getOverrideByFoodId(foodId: Long): NutritionOverrideEntity?
 
+    suspend fun getOverridesByFoodIds(foodIds: Collection<Long>): Map<Long, NutritionOverrideEntity>
+
     suspend fun deleteOverrideByFoodId(foodId: Long): Int
 }

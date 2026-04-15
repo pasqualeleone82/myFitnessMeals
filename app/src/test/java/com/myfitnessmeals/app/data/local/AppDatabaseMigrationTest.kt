@@ -30,7 +30,7 @@ class AppDatabaseMigrationTest {
         seedVersion1Database()
 
         val db = Room.databaseBuilder(context, AppDatabase::class.java, dbName)
-            .addMigrations(AppDatabase.MIGRATION_1_2)
+            .addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3)
             .allowMainThreadQueries()
             .build()
 
@@ -87,7 +87,7 @@ class AppDatabaseMigrationTest {
         seedLargeVersion1Database(groupCount = groupCount, duplicatesPerGroup = duplicatesPerGroup)
 
         val db = Room.databaseBuilder(context, AppDatabase::class.java, dbName)
-            .addMigrations(AppDatabase.MIGRATION_1_2)
+            .addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3)
             .allowMainThreadQueries()
             .build()
 
@@ -177,7 +177,7 @@ class AppDatabaseMigrationTest {
 
             val startedAtNs = System.nanoTime()
             val db = Room.databaseBuilder(context, AppDatabase::class.java, dbName)
-                .addMigrations(AppDatabase.MIGRATION_1_2)
+                .addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3)
                 .allowMainThreadQueries()
                 .build()
             db.openHelper.writableDatabase
@@ -200,6 +200,69 @@ class AppDatabaseMigrationTest {
         assertTrue(p50Ms > 0)
         assertTrue(p95Ms >= p50Ms)
         assertTrue(worstCaseMs >= p95Ms)
+    }
+
+    @Test
+    fun migration_2_3_addsEnrichedNutrientColumns_andKeepsExistingRows() {
+        seedVersion2Database()
+
+        val db = Room.databaseBuilder(context, AppDatabase::class.java, dbName)
+            .addMigrations(AppDatabase.MIGRATION_2_3)
+            .allowMainThreadQueries()
+            .build()
+
+        db.openHelper.writableDatabase
+        val migratedDb = db.openHelper.readableDatabase
+
+        assertTableColumnExists(migratedDb, table = "food_item", column = "saturated_fat_100")
+        assertTableColumnExists(migratedDb, table = "food_item", column = "sugar_100")
+        assertTableColumnExists(migratedDb, table = "food_item", column = "iron_100")
+        assertTableColumnExists(migratedDb, table = "food_item", column = "calcium_100")
+        assertTableColumnExists(migratedDb, table = "food_item", column = "magnesium_100")
+        assertTableColumnExists(migratedDb, table = "food_item", column = "zinc_100")
+        assertTableColumnExists(migratedDb, table = "food_item", column = "vitamin_c_100")
+        assertTableColumnExists(migratedDb, table = "food_item", column = "vitamin_d_100")
+        assertTableColumnExists(migratedDb, table = "food_item", column = "vitamin_b12_100")
+
+        assertTableColumnExists(migratedDb, table = "meal_entry", column = "saturated_fat_total")
+        assertTableColumnExists(migratedDb, table = "meal_entry", column = "sugar_total")
+        assertTableColumnExists(migratedDb, table = "meal_entry", column = "iron_total")
+        assertTableColumnExists(migratedDb, table = "meal_entry", column = "calcium_total")
+        assertTableColumnExists(migratedDb, table = "meal_entry", column = "magnesium_total")
+        assertTableColumnExists(migratedDb, table = "meal_entry", column = "zinc_total")
+        assertTableColumnExists(migratedDb, table = "meal_entry", column = "vitamin_c_total")
+        assertTableColumnExists(migratedDb, table = "meal_entry", column = "vitamin_d_total")
+        assertTableColumnExists(migratedDb, table = "meal_entry", column = "vitamin_b12_total")
+
+        assertTableColumnExists(migratedDb, table = "nutrition_override", column = "saturated_fat_100")
+        assertTableColumnExists(migratedDb, table = "nutrition_override", column = "sugar_100")
+        assertTableColumnExists(migratedDb, table = "nutrition_override", column = "iron_100")
+        assertTableColumnExists(migratedDb, table = "nutrition_override", column = "calcium_100")
+        assertTableColumnExists(migratedDb, table = "nutrition_override", column = "magnesium_100")
+        assertTableColumnExists(migratedDb, table = "nutrition_override", column = "zinc_100")
+        assertTableColumnExists(migratedDb, table = "nutrition_override", column = "vitamin_c_100")
+        assertTableColumnExists(migratedDb, table = "nutrition_override", column = "vitamin_d_100")
+        assertTableColumnExists(migratedDb, table = "nutrition_override", column = "vitamin_b12_100")
+
+        assertTableColumnExists(migratedDb, table = "daily_summary", column = "saturated_fat_total")
+        assertTableColumnExists(migratedDb, table = "daily_summary", column = "sugar_total")
+        assertTableColumnExists(migratedDb, table = "daily_summary", column = "iron_total")
+        assertTableColumnExists(migratedDb, table = "daily_summary", column = "calcium_total")
+        assertTableColumnExists(migratedDb, table = "daily_summary", column = "magnesium_total")
+        assertTableColumnExists(migratedDb, table = "daily_summary", column = "zinc_total")
+        assertTableColumnExists(migratedDb, table = "daily_summary", column = "vitamin_c_total")
+        assertTableColumnExists(migratedDb, table = "daily_summary", column = "vitamin_d_total")
+        assertTableColumnExists(migratedDb, table = "daily_summary", column = "vitamin_b12_total")
+
+        assertEquals(1L, migratedDb.queryLong("SELECT COUNT(*) FROM food_item WHERE id = 7"))
+        assertEquals(1L, migratedDb.queryLong("SELECT COUNT(*) FROM meal_entry WHERE id = 700"))
+        assertEquals(1L, migratedDb.queryLong("SELECT COUNT(*) FROM nutrition_override WHERE food_id = 7"))
+        assertEquals(1L, migratedDb.queryLong("SELECT COUNT(*) FROM daily_summary WHERE local_date = '2026-04-01'"))
+
+        assertEquals(1L, migratedDb.queryLong("SELECT COUNT(*) FROM meal_entry WHERE saturated_fat_total IS NULL"))
+        assertEquals(1L, migratedDb.queryLong("SELECT COUNT(*) FROM food_item WHERE vitamin_b12_100 IS NULL"))
+
+        db.close()
     }
 
     private fun seedVersion1Database() {
@@ -357,6 +420,77 @@ class AppDatabaseMigrationTest {
         helper.close()
     }
 
+    private fun seedVersion2Database() {
+        context.deleteDatabase(dbName)
+
+        val helper = FrameworkSQLiteOpenHelperFactory().create(
+            SupportSQLiteOpenHelper.Configuration.builder(context)
+                .name(dbName)
+                .callback(
+                    object : SupportSQLiteOpenHelper.Callback(2) {
+                        override fun onCreate(db: SupportSQLiteDatabase) {
+                            createVersion2Schema(db)
+                        }
+
+                        override fun onUpgrade(
+                            db: SupportSQLiteDatabase,
+                            oldVersion: Int,
+                            newVersion: Int,
+                        ) = Unit
+                    }
+                )
+                .build()
+        )
+
+        val db = helper.writableDatabase
+        db.execSQL("PRAGMA foreign_keys=ON")
+
+        db.execSQL(
+            """
+            INSERT INTO food_item(
+                id, source_id, source, name, brand, barcode,
+                kcal_100, carb_100, fat_100, protein_100,
+                last_synced_at, canonical_external_key
+            ) VALUES
+                (7, 'off-v2', 'OFF', 'Rice', 'Brand V2', '9988776655443', 360.0, 78.0, 1.0, 7.0, 2000, 'off::sid:off-v2')
+            """.trimIndent()
+        )
+
+        db.execSQL(
+            """
+            INSERT INTO nutrition_override(
+                food_id, kcal_100, carb_100, fat_100, protein_100, note, created_at, updated_at
+            ) VALUES
+                (7, 355.0, 77.0, 1.2, 7.1, 'v2-override', 1000, 1100)
+            """.trimIndent()
+        )
+
+        db.execSQL(
+            """
+            INSERT INTO meal_entry(
+                id, local_date, timezone_offset_min, meal_type, food_id,
+                quantity_value, quantity_unit, resolved_source,
+                kcal_total, carb_total, fat_total, protein_total,
+                created_at, updated_at
+            ) VALUES
+                (700, '2026-04-01', 120, 'lunch', 7, 100.0, 'g', 'OVERRIDE', 355.0, 77.0, 1.2, 7.1, 1200, 1200)
+            """.trimIndent()
+        )
+
+        db.execSQL(
+            """
+            INSERT INTO daily_summary(
+                local_date, kcal_target, kcal_intake, kcal_burned, kcal_remaining,
+                carb_total, fat_total, protein_total, updated_at
+            ) VALUES
+                ('2026-04-01', 2200.0, 355.0, 0.0, 1845.0, 77.0, 1.2, 7.1, 1200)
+            """.trimIndent()
+        )
+
+        db.close()
+        helper.close()
+    }
+
     private fun createVersion1Schema(db: SupportSQLiteDatabase) {
         db.execSQL(
             """
@@ -467,6 +601,31 @@ class AppDatabaseMigrationTest {
             )
             """.trimIndent()
         )
+    }
+
+    private fun createVersion2Schema(db: SupportSQLiteDatabase) {
+        createVersion1Schema(db)
+        db.execSQL("ALTER TABLE food_item ADD COLUMN canonical_external_key TEXT")
+        db.execSQL(
+            "CREATE UNIQUE INDEX IF NOT EXISTS index_food_item_canonical_external_key ON food_item(canonical_external_key)"
+        )
+    }
+
+    private fun assertTableColumnExists(db: SupportSQLiteDatabase, table: String, column: String) {
+        val sql = "PRAGMA table_info($table)"
+        db.query(sql).use { cursor ->
+            var found = false
+            while (cursor.moveToNext()) {
+                val name = cursor.getString(cursor.getColumnIndexOrThrow("name"))
+                if (name == column) {
+                    found = true
+                    val notNull = cursor.getInt(cursor.getColumnIndexOrThrow("notnull"))
+                    assertEquals("Column $table.$column must be nullable", 0, notNull)
+                    break
+                }
+            }
+            assertTrue("Expected column $column in table $table", found)
+        }
     }
 
     private fun SupportSQLiteDatabase.queryLong(sql: String): Long {

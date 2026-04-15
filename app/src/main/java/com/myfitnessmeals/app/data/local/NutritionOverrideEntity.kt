@@ -30,6 +30,24 @@ data class NutritionOverrideEntity(
     val fat100: Double?,
     @ColumnInfo(name = "protein_100")
     val protein100: Double?,
+    @ColumnInfo(name = "saturated_fat_100")
+    val saturatedFat100: Double? = null,
+    @ColumnInfo(name = "sugar_100")
+    val sugar100: Double? = null,
+    @ColumnInfo(name = "iron_100")
+    val iron100: Double? = null,
+    @ColumnInfo(name = "calcium_100")
+    val calcium100: Double? = null,
+    @ColumnInfo(name = "magnesium_100")
+    val magnesium100: Double? = null,
+    @ColumnInfo(name = "zinc_100")
+    val zinc100: Double? = null,
+    @ColumnInfo(name = "vitamin_c_100")
+    val vitaminC100: Double? = null,
+    @ColumnInfo(name = "vitamin_d_100")
+    val vitaminD100: Double? = null,
+    @ColumnInfo(name = "vitamin_b12_100")
+    val vitaminB12100: Double? = null,
     val note: String?,
     @ColumnInfo(name = "created_at")
     val createdAt: Long,

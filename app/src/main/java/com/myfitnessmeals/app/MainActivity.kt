@@ -7,7 +7,9 @@ import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -19,8 +21,6 @@ import androidx.compose.material.icons.filled.SpaceDashboard
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FabPosition
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -40,6 +40,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -115,6 +116,7 @@ private fun AppRoot(appGraph: AppGraph) {
         var tab by remember { mutableStateOf(MainTab.DASHBOARD) }
         var showExitDialog by remember { mutableStateOf(false) }
         var scanRequestKey by remember { mutableStateOf(0L) }
+        var quickAddExpanded by remember { mutableStateOf(false) }
 
         LaunchedEffect(tab) {
             when (tab) {
@@ -163,71 +165,74 @@ private fun AppRoot(appGraph: AppGraph) {
                             selected = tab == MainTab.DASHBOARD,
                             onClick = { tab = MainTab.DASHBOARD },
                             icon = { Icon(Icons.Filled.SpaceDashboard, contentDescription = stringResource(R.string.main_tab_dashboard)) },
-                            label = { Text(stringResource(R.string.main_tab_dashboard)) },
+                            label = { MainTabLabel(text = stringResource(R.string.main_tab_dashboard)) },
                             modifier = Modifier.testTag("main_tab_dashboard"),
                         )
                         NavigationBarItem(
                             selected = tab == MainTab.MEAL,
                             onClick = { tab = MainTab.MEAL },
                             icon = { Icon(Icons.Filled.RestaurantMenu, contentDescription = stringResource(R.string.main_tab_meal)) },
-                            label = { Text(stringResource(R.string.main_tab_meal)) },
+                            label = { MainTabLabel(text = stringResource(R.string.main_tab_meal)) },
                             modifier = Modifier.testTag("main_tab_meal"),
                         )
 
-                        Box(modifier = Modifier.width(64.dp))
+                        NavigationBarItem(
+                            selected = false,
+                            onClick = { quickAddExpanded = true },
+                            icon = {
+                                Box {
+                                    Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.quick_add_food))
+                                    DropdownMenu(
+                                        expanded = quickAddExpanded,
+                                        onDismissRequest = { quickAddExpanded = false },
+                                    ) {
+                                        DropdownMenuItem(
+                                            text = { Text(stringResource(R.string.quick_add_food)) },
+                                            onClick = {
+                                                quickAddExpanded = false
+                                                tab = MainTab.MEAL
+                                            },
+                                            leadingIcon = {
+                                                Icon(Icons.Filled.RestaurantMenu, contentDescription = null)
+                                            },
+                                        )
+                                        DropdownMenuItem(
+                                            text = { Text(stringResource(R.string.quick_scan_barcode)) },
+                                            onClick = {
+                                                quickAddExpanded = false
+                                                tab = MainTab.MEAL
+                                                scanRequestKey += 1L
+                                            },
+                                            leadingIcon = {
+                                                Icon(Icons.Filled.QrCodeScanner, contentDescription = null)
+                                            },
+                                        )
+                                    }
+                                }
+                            },
+                            alwaysShowLabel = false,
+                            modifier = Modifier.testTag("main_tab_quick_add"),
+                        )
 
                         NavigationBarItem(
                             selected = tab == MainTab.HISTORY,
                             onClick = { tab = MainTab.HISTORY },
                             icon = { Icon(Icons.Filled.History, contentDescription = stringResource(R.string.main_tab_history)) },
-                            label = { Text(stringResource(R.string.main_tab_history)) },
+                            label = { MainTabLabel(text = stringResource(R.string.main_tab_history)) },
                             modifier = Modifier.testTag("main_tab_history"),
                         )
                         NavigationBarItem(
                             selected = tab == MainTab.SETTINGS,
                             onClick = { tab = MainTab.SETTINGS },
                             icon = { Icon(Icons.Filled.Settings, contentDescription = stringResource(R.string.main_tab_settings)) },
-                            label = { Text(stringResource(R.string.main_tab_settings)) },
+                            label = {
+                                MainTabLabel(
+                                    text = stringResource(R.string.main_tab_settings),
+                                    modifier = Modifier.testTag("main_tab_settings_label"),
+                                )
+                            },
                             modifier = Modifier.testTag("main_tab_settings"),
                         )
-                    }
-                },
-                floatingActionButtonPosition = FabPosition.Center,
-                floatingActionButton = {
-                    var expanded by remember { mutableStateOf(false) }
-                    Box {
-                        FloatingActionButton(
-                            onClick = { expanded = true },
-                            modifier = Modifier.testTag("main_quick_add_fab"),
-                        ) {
-                            Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.quick_add_food))
-                        }
-                        DropdownMenu(
-                            expanded = expanded,
-                            onDismissRequest = { expanded = false },
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.quick_add_food)) },
-                                onClick = {
-                                    expanded = false
-                                    tab = MainTab.MEAL
-                                },
-                                leadingIcon = {
-                                    Icon(Icons.Filled.RestaurantMenu, contentDescription = null)
-                                },
-                            )
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.quick_scan_barcode)) },
-                                onClick = {
-                                    expanded = false
-                                    tab = MainTab.MEAL
-                                    scanRequestKey += 1L
-                                },
-                                leadingIcon = {
-                                    Icon(Icons.Filled.QrCodeScanner, contentDescription = null)
-                                },
-                            )
-                        }
                     }
                 },
             ) { innerPadding ->
@@ -246,6 +251,16 @@ private fun AppRoot(appGraph: AppGraph) {
             }
         }
     }
+}
+
+@Composable
+private fun MainTabLabel(text: String, modifier: Modifier = Modifier) {
+    Text(
+        modifier = modifier,
+        text = text,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+    )
 }
 
 private fun resolveDarkTheme(preference: AppThemePreference, systemDarkTheme: Boolean): Boolean {

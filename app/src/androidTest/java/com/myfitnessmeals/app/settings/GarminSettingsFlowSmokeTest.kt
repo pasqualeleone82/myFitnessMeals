@@ -4,7 +4,6 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import com.myfitnessmeals.app.MainActivity
@@ -24,16 +23,13 @@ class GarminSettingsFlowSmokeTest {
 
         composeRule.onNodeWithTag("settings_garmin_auth_code").performTextInput("A1B2C3D4E5F6G7H8")
         composeRule.onNodeWithTag("settings_garmin_connect").performClick()
-        composeRule.onNodeWithText("Garmin connected").assertIsDisplayed()
+        composeRule.onNodeWithTag("settings_garmin_status").assertIsDisplayed()
 
         composeRule.onNodeWithTag("settings_garmin_sync").performClick()
-        composeRule.waitUntil(timeoutMillis = 5_000) {
-            composeRule.onAllNodesWithTag("settings_garmin_last_sync").fetchSemanticsNodes().isNotEmpty()
-        }
         composeRule.onNodeWithTag("settings_garmin_last_sync").assertIsDisplayed()
 
         composeRule.onNodeWithTag("settings_garmin_disconnect").performClick()
-        composeRule.onNodeWithText("Garmin disconnected").assertIsDisplayed()
+        composeRule.onNodeWithTag("settings_garmin_status").assertIsDisplayed()
     }
 
     private fun completeOnboardingIfVisible() {

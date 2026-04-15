@@ -11,5 +11,10 @@ class LocalOverrideRepository(
     override suspend fun getOverrideByFoodId(foodId: Long): NutritionOverrideEntity? =
         overrideDao.getByFoodId(foodId)
 
+    override suspend fun getOverridesByFoodIds(foodIds: Collection<Long>): Map<Long, NutritionOverrideEntity> {
+        if (foodIds.isEmpty()) return emptyMap()
+        return overrideDao.getByFoodIds(foodIds.distinct()).associateBy { it.foodId }
+    }
+
     override suspend fun deleteOverrideByFoodId(foodId: Long): Int = overrideDao.deleteByFoodId(foodId)
 }

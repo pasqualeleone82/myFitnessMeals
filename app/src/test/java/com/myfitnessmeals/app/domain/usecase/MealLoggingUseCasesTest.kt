@@ -68,6 +68,15 @@ class MealLoggingUseCasesTest {
                 carb100 = null,
                 fat100 = 1.0,
                 protein100 = 2.0,
+                saturatedFat100 = 0.2,
+                sugar100 = 1.0,
+                iron100 = 0.4,
+                calcium100 = 10.0,
+                magnesium100 = 5.0,
+                zinc100 = 0.2,
+                vitaminC100 = 3.0,
+                vitaminD100 = 0.1,
+                vitaminB12100 = 0.05,
                 lastSyncedAt = 1_700_000_000_000L,
             )
         )
@@ -79,6 +88,15 @@ class MealLoggingUseCasesTest {
                 carb100 = 10.0,
                 fat100 = null,
                 protein100 = 3.0,
+                saturatedFat100 = 0.5,
+                sugar100 = 2.0,
+                iron100 = 0.6,
+                calcium100 = null,
+                magnesium100 = 6.0,
+                zinc100 = 0.3,
+                vitaminC100 = 4.0,
+                vitaminD100 = 0.2,
+                vitaminB12100 = null,
                 note = null,
                 createdAt = 1_700_000_000_000L,
                 updatedAt = 1_700_000_000_000L,
@@ -95,6 +113,15 @@ class MealLoggingUseCasesTest {
                 carb100 = null,
                 fat100 = 1.0,
                 protein100 = 2.0,
+                saturatedFat100 = 0.2,
+                sugar100 = 1.0,
+                iron100 = 0.4,
+                calcium100 = 10.0,
+                magnesium100 = 5.0,
+                zinc100 = 0.2,
+                vitaminC100 = 3.0,
+                vitaminD100 = 0.1,
+                vitaminB12100 = 0.05,
             ),
             quantity = 150.0,
             unit = "g",
@@ -104,6 +131,15 @@ class MealLoggingUseCasesTest {
         assertEquals(15.0, preview.carbTotal, 0.001)
         assertEquals(1.5, preview.fatTotal, 0.001)
         assertEquals(4.5, preview.proteinTotal, 0.001)
+        assertEquals(0.75, preview.saturatedFatTotal ?: 0.0, 0.001)
+        assertEquals(3.0, preview.sugarTotal ?: 0.0, 0.001)
+        assertEquals(0.9, preview.ironTotal ?: 0.0, 0.001)
+        assertEquals(15.0, preview.calciumTotal ?: 0.0, 0.001)
+        assertEquals(9.0, preview.magnesiumTotal ?: 0.0, 0.001)
+        assertEquals(0.45, preview.zincTotal ?: 0.0, 0.001)
+        assertEquals(6.0, preview.vitaminCTotal ?: 0.0, 0.001)
+        assertEquals(0.3, preview.vitaminDTotal ?: 0.0, 0.001)
+        assertEquals(0.075, preview.vitaminB12Total ?: 0.0, 0.001)
         assertTrue(preview.resolvedSource == ResolvedSource.OVERRIDE)
         assertTrue(!preview.kcalMissing)
         assertTrue(!preview.carbMissing)
@@ -451,6 +487,119 @@ class MealLoggingUseCasesTest {
     }
 
     @Test
+    fun saveMealEntry_persistsEnrichedTotalsAndDeleteRecalculatesSummary() = runTest {
+        val foodId = foodRepository.upsertFood(
+            FoodItemEntity(
+                sourceId = "local-4b",
+                source = "CACHE",
+                name = "Beans",
+                brand = "Brand",
+                barcode = "1000000000044",
+                kcal100 = 120.0,
+                carb100 = 18.0,
+                fat100 = 2.0,
+                protein100 = 9.0,
+                saturatedFat100 = 0.4,
+                sugar100 = 2.0,
+                iron100 = 1.4,
+                calcium100 = 55.0,
+                magnesium100 = 40.0,
+                zinc100 = 0.8,
+                vitaminC100 = 6.0,
+                vitaminD100 = 0.0,
+                vitaminB12100 = 0.0,
+                lastSyncedAt = 1_700_000_000_000L,
+            )
+        )
+
+        val saveUseCase = SaveMealEntryUseCase(
+            diaryRepository = diaryRepository,
+            buildMealPreviewUseCase = BuildMealPreviewUseCase(overrideRepository),
+            nowDateProvider = { java.time.LocalDate.of(2026, 4, 8) },
+            nowOffsetProvider = { java.time.ZoneOffset.UTC },
+        )
+        val deleteUseCase = DeleteMealEntryUseCase(diaryRepository)
+
+        val firstEntryId = saveUseCase(
+            SaveMealEntryCommand(
+                mealType = MealType.BREAKFAST,
+                food = MealFoodCandidate(
+                    id = foodId,
+                    name = "Beans",
+                    brand = "Brand",
+                    source = ResolvedSource.CACHE,
+                    kcal100 = 120.0,
+                    carb100 = 18.0,
+                    fat100 = 2.0,
+                    protein100 = 9.0,
+                    saturatedFat100 = 0.4,
+                    sugar100 = 2.0,
+                    iron100 = 1.4,
+                    calcium100 = 55.0,
+                    magnesium100 = 40.0,
+                    zinc100 = 0.8,
+                    vitaminC100 = 6.0,
+                    vitaminD100 = 0.0,
+                    vitaminB12100 = 0.0,
+                ),
+                quantity = 150.0,
+                unit = "g",
+            )
+        )
+
+        saveUseCase(
+            SaveMealEntryCommand(
+                mealType = MealType.LUNCH,
+                food = MealFoodCandidate(
+                    id = foodId,
+                    name = "Beans",
+                    brand = "Brand",
+                    source = ResolvedSource.CACHE,
+                    kcal100 = 120.0,
+                    carb100 = 18.0,
+                    fat100 = 2.0,
+                    protein100 = 9.0,
+                    saturatedFat100 = 0.4,
+                    sugar100 = 2.0,
+                    iron100 = 1.4,
+                    calcium100 = 55.0,
+                    magnesium100 = 40.0,
+                    zinc100 = 0.8,
+                    vitaminC100 = 6.0,
+                    vitaminD100 = 0.0,
+                    vitaminB12100 = 0.0,
+                ),
+                quantity = 100.0,
+                unit = "g",
+            )
+        )
+
+        val localDate = "2026-04-08"
+        val summaryBeforeDelete = diaryRepository.getDailySummary(localDate)
+        assertEquals(300.0, summaryBeforeDelete?.kcalIntake ?: 0.0, 0.001)
+        assertEquals(1.0, summaryBeforeDelete?.saturatedFatTotal ?: 0.0, 0.001)
+        assertEquals(5.0, summaryBeforeDelete?.sugarTotal ?: 0.0, 0.001)
+        assertEquals(3.5, summaryBeforeDelete?.ironTotal ?: 0.0, 0.001)
+        assertEquals(137.5, summaryBeforeDelete?.calciumTotal ?: 0.0, 0.001)
+        assertEquals(100.0, summaryBeforeDelete?.magnesiumTotal ?: 0.0, 0.001)
+        assertEquals(2.0, summaryBeforeDelete?.zincTotal ?: 0.0, 0.001)
+        assertEquals(15.0, summaryBeforeDelete?.vitaminCTotal ?: 0.0, 0.001)
+
+        val deleted = deleteUseCase(firstEntryId)
+        assertTrue(deleted)
+
+        val summaryAfterDelete = diaryRepository.getDailySummary(localDate)
+        assertEquals(120.0, summaryAfterDelete?.kcalIntake ?: 0.0, 0.001)
+        assertEquals(0.4, summaryAfterDelete?.saturatedFatTotal ?: 0.0, 0.001)
+        assertEquals(2.0, summaryAfterDelete?.sugarTotal ?: 0.0, 0.001)
+        assertEquals(1.4, summaryAfterDelete?.ironTotal ?: 0.0, 0.001)
+        assertEquals(55.0, summaryAfterDelete?.calciumTotal ?: 0.0, 0.001)
+        assertEquals(40.0, summaryAfterDelete?.magnesiumTotal ?: 0.0, 0.001)
+        assertEquals(0.8, summaryAfterDelete?.zincTotal ?: 0.0, 0.001)
+        assertEquals(6.0, summaryAfterDelete?.vitaminCTotal ?: 0.0, 0.001)
+    }
+
+    @Test
     fun saveNutritionOverride_persistsAndKeepsCreatedAtOnUpdate() = runTest {
         val foodId = foodRepository.upsertFood(
             FoodItemEntity(
@@ -480,6 +629,15 @@ class MealLoggingUseCasesTest {
                 carb100 = null,
                 fat100 = null,
                 protein100 = 10.0,
+                saturatedFat100 = 0.8,
+                sugar100 = 3.2,
+                iron100 = 1.1,
+                calcium100 = 40.0,
+                magnesium100 = 20.0,
+                zinc100 = 0.9,
+                vitaminC100 = 7.0,
+                vitaminD100 = 0.5,
+                vitaminB12100 = 0.3,
                 note = " label ",
             )
         )
@@ -488,6 +646,15 @@ class MealLoggingUseCasesTest {
         assertNotNull(firstOverride)
         assertEquals(140.0, firstOverride?.kcal100 ?: 0.0, 0.001)
         assertEquals(10.0, firstOverride?.protein100 ?: 0.0, 0.001)
+        assertEquals(0.8, firstOverride?.saturatedFat100 ?: 0.0, 0.001)
+        assertEquals(3.2, firstOverride?.sugar100 ?: 0.0, 0.001)
+        assertEquals(1.1, firstOverride?.iron100 ?: 0.0, 0.001)
+        assertEquals(40.0, firstOverride?.calcium100 ?: 0.0, 0.001)
+        assertEquals(20.0, firstOverride?.magnesium100 ?: 0.0, 0.001)
+        assertEquals(0.9, firstOverride?.zinc100 ?: 0.0, 0.001)
+        assertEquals(7.0, firstOverride?.vitaminC100 ?: 0.0, 0.001)
+        assertEquals(0.5, firstOverride?.vitaminD100 ?: 0.0, 0.001)
+        assertEquals(0.3, firstOverride?.vitaminB12100 ?: 0.0, 0.001)
         assertEquals("label", firstOverride?.note)
         assertEquals(1_800_000_000_000L, firstOverride?.createdAt)
         assertEquals(1_800_000_000_000L, firstOverride?.updatedAt)
@@ -500,6 +667,15 @@ class MealLoggingUseCasesTest {
                 carb100 = 22.0,
                 fat100 = 2.0,
                 protein100 = 11.0,
+                saturatedFat100 = 1.0,
+                sugar100 = 4.0,
+                iron100 = 1.5,
+                calcium100 = 50.0,
+                magnesium100 = 22.0,
+                zinc100 = 1.1,
+                vitaminC100 = 8.0,
+                vitaminD100 = 0.7,
+                vitaminB12100 = 0.4,
                 note = "updated",
             )
         )
@@ -510,6 +686,15 @@ class MealLoggingUseCasesTest {
         assertEquals(22.0, updatedOverride?.carb100 ?: 0.0, 0.001)
         assertEquals(2.0, updatedOverride?.fat100 ?: 0.0, 0.001)
         assertEquals(11.0, updatedOverride?.protein100 ?: 0.0, 0.001)
+        assertEquals(1.0, updatedOverride?.saturatedFat100 ?: 0.0, 0.001)
+        assertEquals(4.0, updatedOverride?.sugar100 ?: 0.0, 0.001)
+        assertEquals(1.5, updatedOverride?.iron100 ?: 0.0, 0.001)
+        assertEquals(50.0, updatedOverride?.calcium100 ?: 0.0, 0.001)
+        assertEquals(22.0, updatedOverride?.magnesium100 ?: 0.0, 0.001)
+        assertEquals(1.1, updatedOverride?.zinc100 ?: 0.0, 0.001)
+        assertEquals(8.0, updatedOverride?.vitaminC100 ?: 0.0, 0.001)
+        assertEquals(0.7, updatedOverride?.vitaminD100 ?: 0.0, 0.001)
+        assertEquals(0.4, updatedOverride?.vitaminB12100 ?: 0.0, 0.001)
         assertEquals("updated", updatedOverride?.note)
         assertEquals(1_800_000_000_000L, updatedOverride?.createdAt)
         assertEquals(1_800_000_100_000L, updatedOverride?.updatedAt)
@@ -518,10 +703,42 @@ class MealLoggingUseCasesTest {
     @Test
     fun saveNutritionOverride_requiresAtLeastOneNutrient() = runTest {
         val saveOverrideUseCase = SaveNutritionOverrideUseCase(overrideRepository)
+
+        val foodId = foodRepository.upsertFood(
+            FoodItemEntity(
+                sourceId = "local-6a",
+                source = "CACHE",
+                name = "Eggs",
+                brand = "Brand",
+                barcode = "1000000000007",
+                kcal100 = 150.0,
+                carb100 = 1.0,
+                fat100 = 11.0,
+                protein100 = 13.0,
+                lastSyncedAt = 1_700_000_000_000L,
+            )
+        )
+
+        saveOverrideUseCase(
+            SaveNutritionOverrideCommand(
+                foodId = foodId,
+                kcal100 = null,
+                carb100 = null,
+                fat100 = null,
+                protein100 = null,
+                saturatedFat100 = 0.9,
+                note = null,
+            )
+        )
+
+        val enrichedOnlyOverride = overrideRepository.getOverrideByFoodId(foodId)
+        assertNotNull(enrichedOnlyOverride)
+        assertEquals(0.9, enrichedOnlyOverride?.saturatedFat100 ?: 0.0, 0.001)
+
         try {
             saveOverrideUseCase(
                 SaveNutritionOverrideCommand(
-                    foodId = 1L,
+                    foodId = foodId,
                     kcal100 = null,
                     carb100 = null,
                     fat100 = null,

@@ -26,6 +26,7 @@ import com.myfitnessmeals.app.domain.usecase.BuildMealPreviewUseCase
 import com.myfitnessmeals.app.domain.usecase.DeleteMealEntryUseCase
 import com.myfitnessmeals.app.domain.usecase.DeleteNutritionOverrideUseCase
 import com.myfitnessmeals.app.domain.usecase.GetMealDaySnapshotUseCase
+import com.myfitnessmeals.app.domain.usecase.GetHistoryMealsForDayUseCase
 import com.myfitnessmeals.app.domain.usecase.ObserveDashboardUseCase
 import com.myfitnessmeals.app.domain.usecase.ObserveHistoryUseCase
 import com.myfitnessmeals.app.domain.usecase.DeleteAllUserDataUseCase
@@ -39,7 +40,7 @@ import com.myfitnessmeals.app.worker.GarminSyncWorker
 class AppGraph(private val context: Context) {
     private val database: AppDatabase by lazy {
         Room.databaseBuilder(context, AppDatabase::class.java, "myfitnessmeals.db")
-            .addMigrations(AppDatabase.MIGRATION_1_2)
+            .addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3)
             .build()
     }
 
@@ -161,6 +162,14 @@ class AppGraph(private val context: Context) {
         ObserveHistoryUseCase(
             diaryRepository = diaryRepository,
             settingsRepository = userSettingsRepository,
+        )
+    }
+
+    val getHistoryMealsForDayUseCase: GetHistoryMealsForDayUseCase by lazy {
+        GetHistoryMealsForDayUseCase(
+            diaryRepository = diaryRepository,
+            foodRepository = foodRepository,
+            overrideRepository = overrideRepository,
         )
     }
 
