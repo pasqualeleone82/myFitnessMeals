@@ -174,6 +174,8 @@ class LocalDiaryRepository(
 
     suspend fun getMealEntries(localDate: String): List<MealEntryEntity> = db.mealEntryDao().getByDate(localDate)
 
+    suspend fun getMealEntryById(entryId: Long): MealEntryEntity? = db.mealEntryDao().getById(entryId)
+
     private suspend fun recalculateDailySummaryLocked(localDate: String) {
         val now = nowEpochMillis()
         val totals = db.mealEntryDao().getTotalsForDate(localDate)

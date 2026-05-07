@@ -8,6 +8,7 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.room.Room
 import androidx.test.platform.app.InstrumentationRegistry
 import com.myfitnessmeals.app.MainActivity
@@ -15,6 +16,8 @@ import com.myfitnessmeals.app.R
 import com.myfitnessmeals.app.data.local.AppDatabase
 import com.myfitnessmeals.app.data.local.DailySummaryEntity
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import org.junit.Before
@@ -22,6 +25,8 @@ import org.junit.Rule
 import org.junit.Test
 
 class HistoryScreenShellTest {
+    private val historyDateValueFormatter = DateTimeFormatter.ofPattern("d MMM yyyy", Locale.ITALIAN)
+
     @get:Rule
     val composeRule = createAndroidComposeRule<MainActivity>()
 
@@ -56,31 +61,34 @@ class HistoryScreenShellTest {
 
         composeRule.onNodeWithTag("main_tab_history").performClick()
         composeRule.onNodeWithTag("history_screen").assertIsDisplayed()
-        composeRule.onNodeWithTag("history_empty_message").assertIsDisplayed()
+        composeRule.onNodeWithTag("history_empty_message").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithTag("history_empty_message")
             .assertTextEquals(composeRule.activity.getString(R.string.history_empty_state_title))
-        composeRule.onNodeWithTag("empty_state_add_meal_button").assertIsDisplayed()
+        composeRule.onNodeWithTag("empty_state_add_meal_button").performScrollTo().assertIsDisplayed()
     }
 
     @Test
     fun dateHeaderAndTotals_updateWhenSelectedDayChanges() {
-        seedTwoDays()
+        val anchorDate = LocalDate.now()
+        seedTwoDays(anchorDate)
         completeOnboardingIfVisible()
 
-        val today = LocalDate.now().toString()
-        val yesterday = LocalDate.now().minusDays(1).toString()
+        val today = anchorDate
+        val yesterday = anchorDate.minusDays(1)
 
         composeRule.onNodeWithTag("main_tab_history").performClick()
-        composeRule.onNodeWithTag("history_selected_date").assertTextEquals(today)
+        composeRule.onNodeWithTag("history_selected_date")
+            .assertTextContains(today.format(historyDateValueFormatter), substring = true)
         composeRule.onNodeWithTag("history_daily_totals_card").assertIsDisplayed()
-        composeRule.onNodeWithTag("history_total_intake").assertTextContains("1800.0")
+        composeRule.onNodeWithTag("history_total_intake").assertTextContains("1800.0", substring = true)
 
         composeRule.onNodeWithTag("history_prev_button").performClick()
-        composeRule.onNodeWithTag("history_selected_date").assertTextEquals(yesterday)
-        composeRule.onNodeWithTag("history_total_intake").assertTextContains("1600.0")
+        composeRule.onNodeWithTag("history_selected_date")
+            .assertTextContains(yesterday.format(historyDateValueFormatter), substring = true)
+        composeRule.onNodeWithTag("history_total_intake").assertTextContains("1600.0", substring = true)
     }
 
-    private fun seedTwoDays() {
+    private fun seedTwoDays(anchorDate: LocalDate) {
         runBlocking(Dispatchers.IO) {
             val context = InstrumentationRegistry.getInstrumentation().targetContext
             val database = Room.databaseBuilder(context, AppDatabase::class.java, "myfitnessmeals.db")
@@ -90,7 +98,7 @@ class HistoryScreenShellTest {
                 val now = System.currentTimeMillis()
                 database.dailySummaryDao().upsert(
                     DailySummaryEntity(
-                        localDate = LocalDate.now().toString(),
+                        localDate = anchorDate.toString(),
                         kcalTarget = 2450.0,
                         kcalIntake = 1800.0,
                         kcalBurned = 320.0,
@@ -103,7 +111,7 @@ class HistoryScreenShellTest {
                 )
                 database.dailySummaryDao().upsert(
                     DailySummaryEntity(
-                        localDate = LocalDate.now().minusDays(1).toString(),
+                        localDate = anchorDate.minusDays(1).toString(),
                         kcalTarget = 2100.0,
                         kcalIntake = 1600.0,
                         kcalBurned = 150.0,

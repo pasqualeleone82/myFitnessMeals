@@ -243,8 +243,24 @@ private fun AppRoot(appGraph: AppGraph) {
                 ) {
                     when (tab) {
                         MainTab.MEAL -> MealLoggingRoute(viewModel = mealViewModel, scanRequestKey = scanRequestKey)
-                        MainTab.DASHBOARD -> DashboardRoute(viewModel = dashboardViewModel)
-                        MainTab.HISTORY -> HistoryRoute(viewModel = historyViewModel)
+                        MainTab.DASHBOARD -> DashboardRoute(
+                            viewModel = dashboardViewModel,
+                            onMacroCardTapped = {
+                                historyViewModel.jumpToToday()
+                                tab = MainTab.HISTORY
+                            },
+                        )
+                        MainTab.HISTORY -> HistoryRoute(
+                            viewModel = historyViewModel,
+                            onAddMealTapped = { selectedDate ->
+                                mealViewModel.setOperatingDate(selectedDate)
+                                tab = MainTab.MEAL
+                            },
+                            onEditMealTapped = { meal, selectedDate ->
+                                mealViewModel.prepareEditFromHistory(meal, selectedDate)
+                                tab = MainTab.MEAL
+                            },
+                        )
                         MainTab.SETTINGS -> SettingsRoute(viewModel = settingsViewModel)
                     }
                 }

@@ -1,5 +1,5 @@
 {
-  "current_state": "ASK_USER",
+  "current_state": "IMPLEMENT_LOOP",
   "session": "2026-04-13_history-nutrients-navigation",
   "assumptions": [
     "OFF (Open Food Facts) API or embedded JSON catalog provides extended nutrient data; fields default to NULL if unavailable",
@@ -16,7 +16,11 @@
     "T-004 ObserveHistoryUseCase emits a one-shot Flow snapshot from current DAO range data; reactive DB observation can be added in later UI-state tasks if needed",
     "T-004 review fix assumes GetHistoryMealsForDayUseCase metadata should prioritize MealEntry.resolvedSource; override-row presence is only a fallback when resolvedSource cannot be parsed",
     "T-005 HistoryViewModel uses a 500ms swipe debounce and explicit add/edit/delete/override refresh hooks to keep selected-day meals/totals deterministic",
-    "T-005 blocker fix will gate meal-load writes by request token/current selected date and only stamp debounce time after successful day-change commits"
+    "T-005 blocker fix will gate meal-load writes by request token/current selected date and only stamp debounce time after successful day-change commits",
+    "T-006 history shell keeps add button as UI primitive while date header now uses Italian localized format and icon-based previous/next controls",
+    "T-006 FIX_REVIEW keeps localized date assertions resilient by matching the stable date portion (d MMM yyyy) instead of weekday abbreviations that may vary by ICU/Android build",
+    "T-006 compile-regression fix scope is limited to Compose test imports in DashboardHistoryFlowSmokeTest: add assertTextContains and remove unused assertTextEquals",
+    "T-006 date-anchor hardening keeps one LocalDate reference per instrumentation test lifecycle and reuses it for seeding and assertions to avoid midnight boundary flakiness"
   ],
   "user_decisions": [
     {
@@ -52,12 +56,32 @@
     {
       "decision_id": "UD-T006-UNRELATED-CHANGES",
       "question": "Durante T-006 sono state rilevate modifiche non correlate gia presenti nel worktree. Vuoi che continui ignorando queste modifiche e lavorando solo sui file T-006?",
-      "status": "pending",
-      "answer": null,
+      "status": "answered",
+      "answer": "approved-safe-branch-workflow",
       "asked_at": "2026-04-15T13:46:03Z",
-      "resolved_at": null,
+      "resolved_at": "2026-04-15T13:50:00Z",
       "state_context": "ASK_USER",
-      "resolution_reason": null
+      "resolution_reason": "Utente ha scelto soluzione sicura: branch dedicato + push snapshot prima di proseguire T-006."
+    },
+    {
+      "decision_id": "UD-T006-REVIEW-NOTES",
+      "question": "Review T-006 PASS WITH NOTES: vuoi applicare ora l'hardening dei test su date ancorate (riduzione flakiness a mezzanotte) o proseguire e tracciare il miglioramento per T-010?",
+      "status": "answered",
+      "answer": "fix-now",
+      "asked_at": "2026-04-28T12:57:12+02:00",
+      "resolved_at": "2026-04-28T12:58:17+02:00",
+      "state_context": "ASK_USER",
+      "resolution_reason": "Utente ha scelto di applicare subito l'hardening test su data ancorata."
+    },
+    {
+      "decision_id": "UD-T010-RESUME-NEXT-DAY",
+      "question": "Vuoi che metta T-010 direttamente su completed (accettando come pending solo evidenze manuali), o preferisci riprendere da questa decisione nella prossima sessione?",
+      "status": "answered",
+      "answer": "resume-tomorrow-from-this-question",
+      "asked_at": "2026-05-06T17:45:46+02:00",
+      "resolved_at": "2026-05-06T17:49:57+02:00",
+      "state_context": "ASK_USER",
+      "resolution_reason": "Utente ha richiesto di continuare domani da questa domanda e segnare lo stato."
     }
   ],
   "gate_tracking": {
@@ -72,9 +96,9 @@
   },
   "runtime_flags": {
     "copilot_instructions_exists": false,
-    "copilot_checked_at": "2026-04-14T09:00:00Z"
+    "copilot_checked_at": "2026-04-28T11:07:10+02:00"
   },
-  "retry_counts": {"T-001": {"FIX_REVIEW": 1}, "T-004": {"FIX_REVIEW": 1}, "T-005": {"FIX_REVIEW": 1}},
+  "retry_counts": {"T-001": {"FIX_REVIEW": 1}, "T-004": {"FIX_REVIEW": 1}, "T-005": {"FIX_REVIEW": 1}, "T-006": {"FIX_REVIEW": 3}, "T-007": {"FIX_REVIEW": 1}, "T-008": {"FIX_REVIEW": 1}, "T-009": {"FIX_REVIEW": 1}, "T-010": {"FIX_REVIEW": 1}},
   "known_issues": [
     "T-001 minor: recalculateDailySummaryLocked duplicated—tech debt for later cleanup (logged, not fixed per non-goals)",
     "T-001 minor: base-4 MealEntryTotals fields (kcalTotal etc.) remain Double? though COALESCE guarantees non-null—out of scope per non-goals (non-enriched field handling)",
@@ -82,8 +106,9 @@
     "T-002 manual AC-004/AC-009/AC-014 UI verification deferred to final integration phase by user decision.",
     "T-003 manual AC-009/AC-011 UI+restart verification deferred to final integration phase.",
     "T-004 manual AC-004/AC-012 verification deferred to final integration phase.",
-    "T-005 manual AC-002/AC-003/AC-009 verification deferred to final integration phase."
+    "T-005 manual AC-002/AC-003/AC-009 verification deferred to final integration phase.",
+    "T-010 manual AC checklist/performance verification remains pending (AC-001..AC-015 manual evidence, swipe <300ms, 90-day load <500ms)."
   ],
-  "last_ci_result": "unknown",
-  "last_update": "2026-04-15T13:46:03Z"
+  "last_ci_result": "T-010 verification rerun (2026-05-07): :app:testDebugUnitTest + :app:connectedDebugAndroidTest PASSED (30/30); :app:assembleDebug PASSED; APK installed via C:/Android/Sdk/platform-tools/adb.exe on emulator-5554 (Success).",
+  "last_update": "2026-05-07T10:01:44+02:00"
 }

@@ -79,7 +79,7 @@
     <string name="history_showing_range">Visualizzazione ultimi 90 giorni</string>
     <string name="history_daily_totals">Totali giornalieri</string>
     <string name="history_total_target">Target: %1$s</string>
-    <string name="history_total_intake">Intake: %1$s</string>
+    <string name="history_total_intake">Assunte: %1$s</string>
     <string name="history_total_burned">Bruciate: %1$s</string>
     <string name="history_total_remaining">Rimanenti: %1$s</string>
     <string name="history_total_carbs">Carboidrati: %1$s g</string>
@@ -98,6 +98,30 @@
     <string name="history_empty_state_subtitle">Vuoi aggiungere un pasto?</string>
     <string name="history_add_meal">Aggiungi pasto</string>
     <string name="history_meals_count">Pasti registrati: %1$d</string>
+    <string name="history_meal_edit">Modifica</string>
+    <string name="history_meal_delete">Elimina</string>
+    <string name="history_meal_override">Override nutrienti</string>
+    <string name="history_meal_source">Fonte: %1$s</string>
+    <string name="history_delete_confirm_title">Eliminare il pasto?</string>
+    <string name="history_delete_confirm_message">Vuoi eliminare %1$s?</string>
+    <string name="history_override_dialog_title">Modifica valori nutrizionali</string>
+    <string name="history_override_save">Salva override</string>
+    <string name="history_override_note">Nota</string>
+    <string name="history_override_invalid_number">Inserisci numeri validi (>= 0)</string>
+    <string name="history_override_at_least_one_required">Imposta almeno un valore nutriente</string>
+    <string name="history_override_kcal">kcal/100</string>
+    <string name="history_override_carb">carb/100</string>
+    <string name="history_override_fat">grassi/100</string>
+    <string name="history_override_protein">proteine/100</string>
+    <string name="history_override_saturated_fat">grassi saturi/100</string>
+    <string name="history_override_sugar">zuccheri/100</string>
+    <string name="history_override_iron">ferro mg/100</string>
+    <string name="history_override_calcium">calcio mg/100</string>
+    <string name="history_override_magnesium">magnesio mg/100</string>
+    <string name="history_override_zinc">zinco mg/100</string>
+    <string name="history_override_vitamin_c">vitamina C mg/100</string>
+    <string name="history_override_vitamin_d">vitamina D mcg/100</string>
+    <string name="history_override_vitamin_b12">vitamina B12 mcg/100</string>
 
     <string name="settings_title">Impostazioni</string>
     <string name="settings_target_kcal">Target kcal</string>

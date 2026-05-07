@@ -1,10 +1,12 @@
 package com.myfitnessmeals.app.dashboard
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performClick
 import androidx.room.Room
 import androidx.test.platform.app.InstrumentationRegistry
@@ -14,11 +16,16 @@ import com.myfitnessmeals.app.data.local.DailySummaryEntity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 
 class DashboardHistoryFlowSmokeTest {
+    private val historyDateValueFormatter = DateTimeFormatter.ofPattern("d MMM yyyy", Locale.ITALIAN)
+    private lateinit var anchorDate: LocalDate
+
     @get:Rule
     val composeRule = createAndroidComposeRule<MainActivity>()
 
@@ -26,13 +33,14 @@ class DashboardHistoryFlowSmokeTest {
     fun resetDatabase() {
         composeRule.waitForIdle()
         runBlocking(Dispatchers.IO) {
+            anchorDate = LocalDate.now()
             val context = InstrumentationRegistry.getInstrumentation().targetContext
             val database = Room.databaseBuilder(context, AppDatabase::class.java, "myfitnessmeals.db")
                 .addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3)
                 .build()
             try {
                 database.clearAllTables()
-                seedDashboardHistoryData(database)
+                seedDashboardHistoryData(database, anchorDate)
             } finally {
                 database.close()
             }
@@ -45,41 +53,37 @@ class DashboardHistoryFlowSmokeTest {
 
         composeRule.onNodeWithTag("main_tab_dashboard").performClick()
         composeRule.onNodeWithTag("dashboard_screen").assertIsDisplayed()
-        composeRule.onNodeWithTag("dashboard_kcal_target").assertIsDisplayed()
-        composeRule.onNodeWithTag("dashboard_kcal_intake").assertIsDisplayed()
-        composeRule.onNodeWithTag("dashboard_kcal_burned").assertIsDisplayed()
-        composeRule.onNodeWithTag("dashboard_kcal_remaining").assertIsDisplayed()
-        composeRule.onNodeWithTag("dashboard_macro_carb").assertIsDisplayed()
-        composeRule.onNodeWithTag("dashboard_macro_fat").assertIsDisplayed()
-        composeRule.onNodeWithTag("dashboard_macro_protein").assertIsDisplayed()
-        composeRule.onNodeWithTag("dashboard_widget_steps").assertIsDisplayed()
-        composeRule.onNodeWithTag("dashboard_widget_weight").assertIsDisplayed()
-        composeRule.onNodeWithTag("dashboard_widget_exercise_kcal").assertIsDisplayed()
-        composeRule.onNodeWithTag("dashboard_widget_workout_minutes").assertIsDisplayed()
-        composeRule.onNodeWithText("Target:", substring = true).assertIsDisplayed()
-        composeRule.onNodeWithText("Intake:", substring = true).assertIsDisplayed()
-        composeRule.onNodeWithText("Burned:", substring = true).assertIsDisplayed()
-        composeRule.onNodeWithText("Remaining:", substring = true).assertIsDisplayed()
-        composeRule.onNodeWithText("Carbs:", substring = true).assertIsDisplayed()
-        composeRule.onNodeWithText("Fat:", substring = true).assertIsDisplayed()
-        composeRule.onNodeWithText("Protein:", substring = true).assertIsDisplayed()
+        assertDashboardNodeVisible("dashboard_kcal_target")
+        assertDashboardNodeVisible("dashboard_kcal_intake")
+        assertDashboardNodeVisible("dashboard_kcal_burned")
+        assertDashboardNodeVisible("dashboard_kcal_remaining")
+        assertDashboardNodeVisible("dashboard_macro_card")
+        assertDashboardNodeVisible("dashboard_widget_steps")
+        assertDashboardNodeVisible("dashboard_widget_weight")
+        assertDashboardNodeVisible("dashboard_widget_exercise_kcal")
+        assertDashboardNodeVisible("dashboard_widget_workout_minutes")
 
         composeRule.onNodeWithTag("main_tab_history").performClick()
         composeRule.onNodeWithTag("history_screen").assertIsDisplayed()
-        composeRule.onNodeWithTag("history_range_label").assertIsDisplayed()
-        composeRule.onNodeWithTag("history_selected_date").assertIsDisplayed()
-        composeRule.onNodeWithText(LocalDate.now().toString()).assertIsDisplayed()
+        composeRule.onNodeWithTag("history_selected_date")
+            .assertTextContains(anchorDate.format(historyDateValueFormatter), substring = true)
         composeRule.onNodeWithTag("history_selected_remaining").assertIsDisplayed()
 
         composeRule.onNodeWithTag("history_prev_button").performClick()
         composeRule.onNodeWithTag("history_selected_remaining").assertIsDisplayed()
-        composeRule.onNodeWithText(LocalDate.now().minusDays(1).toString()).assertIsDisplayed()
+        composeRule.onNodeWithTag("history_selected_date")
+            .assertTextContains(anchorDate.minusDays(1).format(historyDateValueFormatter), substring = true)
     }
 
-    private suspend fun seedDashboardHistoryData(database: AppDatabase) {
+    private fun assertDashboardNodeVisible(tag: String) {
+        composeRule.onNodeWithTag("dashboard_screen").performScrollToNode(hasTestTag(tag))
+        composeRule.onNodeWithTag(tag).assertIsDisplayed()
+    }
+
+    private suspend fun seedDashboardHistoryData(database: AppDatabase, anchorDate: LocalDate) {
         val now = System.currentTimeMillis()
-        val today = LocalDate.now().toString()
-        val yesterday = LocalDate.now().minusDays(1).toString()
+        val today = anchorDate.toString()
+        val yesterday = anchorDate.minusDays(1).toString()
 
         database.dailySummaryDao().upsert(
             DailySummaryEntity(

@@ -461,6 +461,78 @@ class GetMealDaySnapshotUseCase(
     }
 }
 
+class GetMealFoodCandidateByIdUseCase(
+    private val foodRepository: LocalFoodRepository,
+) {
+    suspend operator fun invoke(foodId: Long): MealFoodCandidate? {
+        val food = foodRepository.getFoodById(foodId) ?: return null
+        return food.toCandidate(source = food.source.toResolvedSourceOrDefault())
+    }
+}
+
+class ApplyNutritionOverrideToMealEntryUseCase(
+    private val diaryRepository: LocalDiaryRepository,
+    private val foodRepository: LocalFoodRepository,
+    private val saveNutritionOverrideUseCase: SaveNutritionOverrideUseCase,
+    private val buildMealPreviewUseCase: BuildMealPreviewUseCase,
+) {
+    suspend operator fun invoke(
+        mealEntryId: Long,
+        command: SaveNutritionOverrideCommand,
+    ): Boolean {
+        saveNutritionOverrideUseCase(command)
+
+        val existingEntry = diaryRepository.getMealEntryById(mealEntryId) ?: return false
+        if (existingEntry.foodId != command.foodId) {
+            return false
+        }
+
+        val food = foodRepository.getFoodById(existingEntry.foodId) ?: return false
+        val candidate = food.toCandidate(source = food.source.toResolvedSourceOrDefault())
+        val preview = buildMealPreviewUseCase(
+            food = candidate,
+            quantity = existingEntry.quantityValue,
+            unit = existingEntry.quantityUnit,
+        )
+
+        return diaryRepository.updateMealEntry(
+            entryId = mealEntryId,
+            entry = NewMealEntry(
+                localDate = existingEntry.localDate,
+                timezoneOffsetMin = existingEntry.timezoneOffsetMin,
+                mealType = existingEntry.mealType.toMealTypeOrFallback(),
+                foodId = existingEntry.foodId,
+                quantityValue = existingEntry.quantityValue,
+                quantityUnit = existingEntry.quantityUnit,
+                resolvedSource = preview.resolvedSource,
+                kcalTotal = preview.kcalTotal,
+                carbTotal = preview.carbTotal,
+                fatTotal = preview.fatTotal,
+                proteinTotal = preview.proteinTotal,
+                saturatedFatTotal = preview.saturatedFatTotal,
+                sugarTotal = preview.sugarTotal,
+                ironTotal = preview.ironTotal,
+                calciumTotal = preview.calciumTotal,
+                magnesiumTotal = preview.magnesiumTotal,
+                zincTotal = preview.zincTotal,
+                vitaminCTotal = preview.vitaminCTotal,
+                vitaminDTotal = preview.vitaminDTotal,
+                vitaminB12Total = preview.vitaminB12Total,
+            )
+        )
+    }
+}
+
+private fun String.toMealTypeOrFallback(): MealType {
+    return runCatching { MealType.valueOf(trim().uppercase()) }
+        .getOrDefault(MealType.SNACK)
+}
+
+private fun String.toResolvedSourceOrDefault(): ResolvedSource {
+    return runCatching { ResolvedSource.valueOf(trim().uppercase()) }
+        .getOrDefault(ResolvedSource.CACHE)
+}
+
 private fun FoodItemEntity.toCandidate(source: ResolvedSource): MealFoodCandidate {
     return MealFoodCandidate(
         id = id,

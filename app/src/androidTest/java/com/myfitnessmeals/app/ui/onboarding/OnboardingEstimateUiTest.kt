@@ -6,9 +6,12 @@ import androidx.activity.ComponentActivity
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.text.intl.Locale
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -39,9 +42,12 @@ class OnboardingEstimateUiTest {
             }
         }
 
-        composeRule.onNodeWithTag("onboarding_target_card").assertIsDisplayed()
+        composeRule.onNodeWithTag("onboarding_screen")
+            .performScrollToNode(hasTestTag("onboarding_target_card"))
+        composeRule.onNodeWithTag("onboarding_target").assertTextContains("2301", substring = true)
+        composeRule.onNodeWithTag("onboarding_screen")
+            .performScrollToNode(hasTestTag("onboarding_complete_button"))
         composeRule.onNodeWithTag("onboarding_complete_button").assertIsDisplayed()
-        composeRule.onNodeWithText("2301 kcal/day").assertIsDisplayed()
 
         val estimateBounds = composeRule.onNodeWithTag("onboarding_target_card").fetchSemanticsNode().boundsInRoot
         val ctaBounds = composeRule.onNodeWithTag("onboarding_complete_button").fetchSemanticsNode().boundsInRoot

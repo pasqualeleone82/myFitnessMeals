@@ -183,7 +183,7 @@ tasks:
       - "Meets AC-002, AC-003, AC-009 references"
 
   - id: T-006
-    status: in-progress
+    status: completed
     type: feat
     title: "Build History screen shell (tab, date header, totals card, empty state, add button)"
     size: M
@@ -206,7 +206,7 @@ tasks:
       - "app/src/main/res/values-it/strings.xml"
       - "app/src/androidTest/java/**/HistoryScreen*Test.kt"
     acceptance_checks:
-      - "cmd: ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=*HistoryScreen*"
+      - "cmd: ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.myfitnessmeals.app.history.HistoryScreenShellTest"
       - "manual: History tab appears in bottom navigation as 'Storico' (AC-001)"
       - "manual: Empty day renders 'Nessun pasto registrato' and add button (AC-012)"
       - "manual: Date header and daily totals visible and update with selected day (AC-004)"
@@ -222,7 +222,7 @@ tasks:
       - "Meets AC-001, AC-004, AC-012 references"
 
   - id: T-007
-    status: not-started
+    status: completed
     type: feat
     title: "Implement meal card rendering and edit/delete/add flows from History"
     size: M
@@ -243,7 +243,7 @@ tasks:
       - "app/src/main/java/com/myfitnessmeals/app/ui/meal/*"
       - "app/src/androidTest/java/**/MealCard*Test.kt"
     acceptance_checks:
-      - "cmd: ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=*MealCard*"
+      - "cmd: ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.myfitnessmeals.app.history.MealCardComponentTest"
       - "manual: Meal cards show portion + base/enriched nutrients with null placeholders (AC-004)"
       - "manual: Edit opens prefilled meal logging and save returns updated day totals (AC-005, AC-009)"
       - "manual: Delete confirmation and removal behavior works (AC-006, AC-009)"
@@ -260,7 +260,7 @@ tasks:
       - "Meets AC-004, AC-005, AC-006, AC-007, AC-009 references"
 
   - id: T-008
-    status: not-started
+    status: completed
     type: feat
     title: "Add button-based nutrient override dialog and persistence wiring"
     size: M
@@ -282,7 +282,7 @@ tasks:
       - "app/src/main/res/values-it/strings.xml"
       - "app/src/androidTest/java/**/NutrientOverride*Test.kt"
     acceptance_checks:
-      - "cmd: ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=*NutrientOverride*"
+      - "cmd: ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.myfitnessmeals.app.history.NutrientOverrideDialogComponentTest"
       - "manual: Override button is separate (not inline) and opens 12-field dialog (AC-008)"
       - "manual: Saving override updates displayed values/source without relaunch (AC-008, AC-009)"
       - "manual: Overrides persist after restart (AC-011)"
@@ -298,7 +298,7 @@ tasks:
       - "Meets AC-008, AC-009, AC-011 references"
 
   - id: T-009
-    status: not-started
+    status: completed
     type: feat
     title: "Integrate dashboard macronutrient card tap to History(today)"
     size: S
@@ -317,7 +317,7 @@ tasks:
       - "app/src/main/java/com/myfitnessmeals/app/ui/navigation/*"
       - "app/src/androidTest/java/**/DashboardNavigation*Test.kt"
     acceptance_checks:
-      - "cmd: ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=*DashboardNavigation*"
+      - "cmd: ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.myfitnessmeals.app.dashboard.DashboardNavigationToHistoryTest"
       - "manual: Tapping macro card shows ripple and opens History tab on today (AC-010)"
       - "manual: Existing macro metrics and card layout remain unchanged (AC-010)"
     risk_flags:
@@ -332,7 +332,7 @@ tasks:
       - "Meets AC-010 references"
 
   - id: T-010
-    status: not-started
+    status: in-progress
     type: test
     title: "Finalize integration verification, performance checks, and regression safeguards"
     size: M

@@ -86,9 +86,6 @@ class MealLoggingFlowSmokeTest {
 
         composeRule.onNodeWithTag("meal_result_$seededChickenId").assertIsDisplayed()
         composeRule.onNodeWithTag("meal_result_$seededChickenId").performClick()
-
-        composeRule.onNodeWithTag("meal_quantity_input").performTextClearance()
-        composeRule.onNodeWithTag("meal_quantity_input").performTextInput("120")
         clickSaveMealEntry()
         composeRule.waitForIdle()
     }
@@ -102,27 +99,18 @@ class MealLoggingFlowSmokeTest {
         composeRule.onNodeWithTag("meal_search_input").performTextClearance()
         composeRule.onNodeWithTag("meal_search_input").performTextInput("seed-local Chicken")
         composeRule.onNodeWithTag("meal_search_button").performClick()
-        composeRule.onNodeWithTag("meal_result_$seededChickenId").performClick()
 
-        selectMealType("meal_type_breakfast")
-        composeRule.onNodeWithTag("meal_quantity_input").performTextClearance()
-        composeRule.onNodeWithTag("meal_quantity_input").performTextInput("100")
-        clickSaveMealEntry()
-
-        selectMealType("meal_type_lunch")
-        composeRule.onNodeWithTag("meal_quantity_input").performTextClearance()
-        composeRule.onNodeWithTag("meal_quantity_input").performTextInput("100")
-        clickSaveMealEntry()
-
-        selectMealType("meal_type_dinner")
-        composeRule.onNodeWithTag("meal_quantity_input").performTextClearance()
-        composeRule.onNodeWithTag("meal_quantity_input").performTextInput("100")
-        clickSaveMealEntry()
-
-        selectMealType("meal_type_snack")
-        composeRule.onNodeWithTag("meal_quantity_input").performTextClearance()
-        composeRule.onNodeWithTag("meal_quantity_input").performTextInput("100")
-        clickSaveMealEntry()
+        listOf(
+            "meal_type_breakfast",
+            "meal_type_lunch",
+            "meal_type_dinner",
+            "meal_type_snack",
+        ).forEach { mealTypeTag ->
+            selectMealType(mealTypeTag)
+            composeRule.onNodeWithTag("meal_screen").performScrollToNode(hasTestTag("meal_result_$seededChickenId"))
+            composeRule.onNodeWithTag("meal_result_$seededChickenId").performClick()
+            clickSaveMealEntry()
+        }
     }
 
     @Test
@@ -146,6 +134,7 @@ class MealLoggingFlowSmokeTest {
         composeRule.onNodeWithTag("override_save_button").performClick()
 
         composeRule.onNodeWithTag("override_clear_button").performClick()
+        composeRule.onNodeWithTag("meal_screen").performScrollToNode(hasTestTag("meal_resolved_source"))
         composeRule.onNodeWithTag("meal_resolved_source").assertIsDisplayed()
     }
 

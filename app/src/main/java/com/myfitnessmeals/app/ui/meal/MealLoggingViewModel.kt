@@ -20,6 +20,7 @@ import com.myfitnessmeals.app.domain.usecase.SaveNutritionOverrideCommand
 import com.myfitnessmeals.app.domain.usecase.SaveNutritionOverrideUseCase
 import com.myfitnessmeals.app.domain.usecase.SearchFoodByBarcodeUseCase
 import com.myfitnessmeals.app.domain.usecase.SearchFoodsByTextUseCase
+import com.myfitnessmeals.app.domain.model.HistoryMealCard
 import java.time.LocalDate
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -69,6 +70,7 @@ class MealLoggingViewModel(
     private val overrideRepository: LocalOverrideRepository,
     private val deleteMealEntryUseCase: DeleteMealEntryUseCase,
     private val getMealDaySnapshotUseCase: GetMealDaySnapshotUseCase,
+    private val loadFoodCandidateById: suspend (Long) -> MealFoodCandidate?,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(MealLoggingUiState())
     val uiState: StateFlow<MealLoggingUiState> = _uiState.asStateFlow()
@@ -96,6 +98,33 @@ class MealLoggingViewModel(
 
     fun goToToday() {
         onSelectedDateChanged(LocalDate.now().toString())
+    }
+
+    fun setOperatingDate(localDate: String) {
+        onSelectedDateChanged(localDate)
+    }
+
+    fun prepareEditFromHistory(meal: HistoryMealCard, selectedDate: String) {
+        onSelectedDateChanged(selectedDate)
+
+        _uiState.update {
+            it.copy(
+                selectedMealType = meal.mealType,
+                quantityInput = meal.quantityValue.formatOverrideInput(),
+                unitInput = meal.quantityUnit,
+                errorMessage = null,
+            )
+        }
+
+        viewModelScope.launch {
+            val candidate = loadFoodCandidateById(meal.foodId)
+            if (candidate == null) {
+                _uiState.update { it.copy(errorMessage = "Unable to load selected food for editing") }
+                return@launch
+            }
+
+            onFoodSelected(candidate)
+        }
     }
 
     private fun onSelectedDateChanged(localDate: String) {
@@ -534,6 +563,7 @@ class MealLoggingViewModel(
                         overrideRepository = appGraph.overrideRepository,
                         deleteMealEntryUseCase = appGraph.deleteMealEntryUseCase,
                         getMealDaySnapshotUseCase = appGraph.getMealDaySnapshotUseCase,
+                        loadFoodCandidateById = { foodId -> appGraph.getMealFoodCandidateByIdUseCase(foodId) },
                     ) as T
                 }
             }

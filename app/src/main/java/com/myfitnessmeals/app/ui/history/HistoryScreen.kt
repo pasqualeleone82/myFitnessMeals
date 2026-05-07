@@ -3,33 +3,43 @@ package com.myfitnessmeals.app.ui.history
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Dining
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.pointer.consume
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.myfitnessmeals.app.R
+import com.myfitnessmeals.app.domain.model.HistoryMealCard
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeParseException
+import java.util.Locale
 import kotlin.math.abs
 
 private const val HORIZONTAL_SWIPE_THRESHOLD_PX = 100f
+private val HISTORY_DATE_FORMATTER = DateTimeFormatter.ofPattern("EEE d MMM yyyy", Locale.ITALIAN)
 
 @Composable
 fun HistoryScreen(
@@ -39,8 +49,13 @@ fun HistoryScreen(
     onSwipeLeft: () -> Unit,
     onSwipeRight: () -> Unit,
     onAddMealTapped: () -> Unit,
+    onEditMealTapped: (meal: HistoryMealCard) -> Unit,
+    onDeleteMealConfirmed: (mealEntryId: Long) -> Unit,
+    onSaveMealOverride: (meal: HistoryMealCard, input: NutrientOverrideInput) -> Unit,
 ) {
     var accumulatedDrag by remember(state.selectedDate) { mutableFloatStateOf(0f) }
+    var pendingDeleteMeal by remember { mutableStateOf<HistoryMealCard?>(null) }
+    var pendingOverrideMeal by remember { mutableStateOf<HistoryMealCard?>(null) }
 
     Surface(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -107,10 +122,11 @@ fun HistoryScreen(
                             items = state.mealsForSelectedDay,
                             key = { meal -> meal.mealEntryId },
                         ) { meal ->
-                            Text(
-                                text = meal.foodName,
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.testTag("history_meal_name_${meal.mealEntryId}"),
+                            MealCard(
+                                meal = meal,
+                                onEditTapped = { onEditMealTapped(meal) },
+                                onDeleteTapped = { pendingDeleteMeal = meal },
+                                onOverrideTapped = { pendingOverrideMeal = meal },
                             )
                         }
 
@@ -152,6 +168,30 @@ fun HistoryScreen(
                 }
             }
         }
+
+        pendingDeleteMeal?.let { meal ->
+            DeleteMealConfirmDialog(
+                foodName = meal.foodName,
+                onConfirmDelete = {
+                    onDeleteMealConfirmed(meal.mealEntryId)
+                    pendingDeleteMeal = null
+                },
+                onDismiss = {
+                    pendingDeleteMeal = null
+                },
+            )
+        }
+
+        pendingOverrideMeal?.let { meal ->
+            NutrientOverrideDialog(
+                foodName = meal.foodName,
+                onSave = { input ->
+                    onSaveMealOverride(meal, input)
+                    pendingOverrideMeal = null
+                },
+                onDismiss = { pendingOverrideMeal = null },
+            )
+        }
     }
 }
 
@@ -161,37 +201,51 @@ private fun HistoryDateHeader(
     onPrevious: () -> Unit,
     onNext: () -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            text = state.selectedDay?.localDate ?: state.todayDate,
-            style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.testTag("history_selected_date"),
-        )
+    val selectedDateText = formatHistoryDate(state.selectedDay?.localDate ?: state.todayDate)
 
-        androidx.compose.foundation.layout.Row(
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Button(
+            IconButton(
                 onClick = onPrevious,
                 enabled = state.canGoPrevious,
-                modifier = Modifier
-                    .weight(1f)
-                    .testTag("history_prev_button"),
+                modifier = Modifier.testTag("history_prev_button"),
             ) {
-                Text(stringResource(R.string.history_previous))
+                Icon(
+                    imageVector = Icons.Filled.ChevronLeft,
+                    contentDescription = stringResource(R.string.history_previous),
+                )
             }
 
-            Button(
-                onClick = onNext,
-                enabled = state.canGoNext,
+            Text(
+                text = selectedDateText,
+                style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier
                     .weight(1f)
-                    .testTag("history_next_button"),
+                    .testTag("history_selected_date"),
+            )
+
+            IconButton(
+                onClick = onNext,
+                enabled = state.canGoNext,
+                modifier = Modifier.testTag("history_next_button"),
             ) {
-                Text(stringResource(R.string.history_next))
+                Icon(
+                    imageVector = Icons.Filled.ChevronRight,
+                    contentDescription = stringResource(R.string.history_next),
+                )
             }
         }
+    }
+}
+
+private fun formatHistoryDate(localDate: String): String {
+    return try {
+        LocalDate.parse(localDate).format(HISTORY_DATE_FORMATTER)
+    } catch (_: DateTimeParseException) {
+        localDate
     }
 }
 

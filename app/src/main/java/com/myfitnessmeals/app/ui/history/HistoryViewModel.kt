@@ -9,7 +9,9 @@ import com.myfitnessmeals.app.domain.model.HistoryMealCard
 import com.myfitnessmeals.app.domain.usecase.DeleteMealEntryUseCase
 import com.myfitnessmeals.app.domain.usecase.GetHistoryMealsForDayUseCase
 import com.myfitnessmeals.app.domain.usecase.ObserveHistoryUseCase
+import com.myfitnessmeals.app.domain.usecase.SaveNutritionOverrideCommand
 import java.time.Instant
+import java.time.LocalDate
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -31,6 +33,7 @@ class HistoryViewModel(
     private val deleteMealAction: suspend (Long) -> Unit = { mealEntryId ->
         deleteMealEntryUseCase(mealEntryId)
     },
+    private val saveOverrideAction: suspend (Long, SaveNutritionOverrideCommand) -> Unit = { _, _ -> Unit },
     private val swipeDebounceMs: Long = DEFAULT_SWIPE_DEBOUNCE_MS,
     private val nowEpochMillis: () -> Long = { Instant.now().toEpochMilli() },
 ) : ViewModel() {
@@ -89,6 +92,30 @@ class HistoryViewModel(
         moveSelection(direction = SwipeDirection.LEFT)
     }
 
+    fun jumpToToday() {
+        val today = LocalDate.now().toString()
+        val currentState = _uiState.value
+
+        if (currentState.days.isEmpty()) {
+            refresh()
+            return
+        }
+
+        val targetDate = currentState.days.firstOrNull { it.localDate == today }?.localDate
+            ?: currentState.days.first().localDate
+        if (currentState.selectedDate == targetDate) {
+            return
+        }
+
+        _uiState.update {
+            it.copy(
+                selectedDate = targetDate,
+                errorMessage = null,
+            )
+        }
+        scheduleMealsLoadForSelectedDay()
+    }
+
     fun onMealAdded() {
         refresh()
     }
@@ -97,8 +124,36 @@ class HistoryViewModel(
         refresh()
     }
 
-    fun onMealOverrideSaved() {
-        refresh()
+    fun onSaveMealOverride(mealEntryId: Long, foodId: Long, input: NutrientOverrideInput) {
+        viewModelScope.launch {
+            try {
+                saveOverrideAction(
+                    mealEntryId,
+                    SaveNutritionOverrideCommand(
+                        foodId = foodId,
+                        kcal100 = input.kcal100,
+                        carb100 = input.carb100,
+                        fat100 = input.fat100,
+                        protein100 = input.protein100,
+                        saturatedFat100 = input.saturatedFat100,
+                        sugar100 = input.sugar100,
+                        iron100 = input.iron100,
+                        calcium100 = input.calcium100,
+                        magnesium100 = input.magnesium100,
+                        zinc100 = input.zinc100,
+                        vitaminC100 = input.vitaminC100,
+                        vitaminD100 = input.vitaminD100,
+                        vitaminB12100 = input.vitaminB12100,
+                        note = input.note,
+                    )
+                )
+                refresh()
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                _uiState.update { it.copy(errorMessage = error.message ?: "Unable to save override") }
+            }
+        }
     }
 
     fun onDeleteMealConfirmed(mealEntryId: Long) {
@@ -207,6 +262,10 @@ class HistoryViewModel(
                         observeHistoryUseCase = appGraph.observeHistoryUseCase,
                         getHistoryMealsForDayUseCase = appGraph.getHistoryMealsForDayUseCase,
                         deleteMealEntryUseCase = appGraph.deleteMealEntryUseCase,
+                        saveOverrideAction = { mealEntryId, command ->
+                            appGraph.applyNutritionOverrideToMealEntryUseCase(mealEntryId, command)
+                            Unit
+                        },
                     ) as T
                 }
             }

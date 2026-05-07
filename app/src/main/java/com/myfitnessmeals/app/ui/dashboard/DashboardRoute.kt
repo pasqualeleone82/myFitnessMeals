@@ -3,6 +3,7 @@ package com.myfitnessmeals.app.ui.dashboard
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -83,13 +84,22 @@ class DashboardViewModel(
 }
 
 @Composable
-fun DashboardRoute(viewModel: DashboardViewModel) {
+fun DashboardRoute(
+    viewModel: DashboardViewModel,
+    onMacroCardTapped: () -> Unit = {},
+) {
     val state by viewModel.uiState.collectAsState()
-    DashboardScreen(state = state)
+    DashboardScreen(
+        state = state,
+        onMacroCardTapped = onMacroCardTapped,
+    )
 }
 
 @Composable
-fun DashboardScreen(state: DashboardUiState) {
+fun DashboardScreen(
+    state: DashboardUiState,
+    onMacroCardTapped: () -> Unit = {},
+) {
     Surface(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
             modifier = Modifier
@@ -107,7 +117,7 @@ fun DashboardScreen(state: DashboardUiState) {
                     CalorieCard(snapshot)
                 }
                 item {
-                    MacroCard(snapshot)
+                    MacroCard(snapshot, onClick = onMacroCardTapped)
                 }
                 item {
                     FitnessWidgets(snapshot)
@@ -151,9 +161,12 @@ private fun CalorieCard(snapshot: DashboardSnapshot) {
 }
 
 @Composable
-private fun MacroCard(snapshot: DashboardSnapshot) {
+private fun MacroCard(snapshot: DashboardSnapshot, onClick: () -> Unit) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .testTag("dashboard_macro_card"),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)),
     ) {
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
